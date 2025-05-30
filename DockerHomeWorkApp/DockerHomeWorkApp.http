@@ -1,0 +1,6 @@
+@DockerHomeWorkApp_HostAddress = http://localhost:8000
+
+GET {{DockerHomeWorkApp_HostAddress}}/health/
+Accept: application/json
+
+###
