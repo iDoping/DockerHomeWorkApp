@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthservice
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healthservice
+  template:
+    metadata:
+      labels:
+        app: healthservice
+    spec:
+      containers:
+        - name: healthservice
+          image: idoping/healthservice:latest
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
