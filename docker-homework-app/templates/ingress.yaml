@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: docker-homework-app-ingress
+  name: {{ .Release.Name }}-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
@@ -10,17 +10,17 @@ spec:
     - host: arch.homework
       http:
         paths:
-          - path: /otusapp/ilukin(/|$)(.*)
+          - path: /otusapp/{{ .Values.studentName }}(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: docker-homework-app-service
+                name: {{ .Release.Name }}-service
                 port:
                   number: 80
-          - path: /otusapp/ilukin/health(/|$)(.*)
-            pathType: ImplementationSpecific
+          - path: /health
+            pathType: Prefix
             backend:
               service:
-                name: docker-homework-app-service
+                name: {{ .Release.Name }}-service
                 port:
                   number: 80

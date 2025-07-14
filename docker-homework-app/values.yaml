@@ -1,0 +1,13 @@
+replicaCount: 2
+
+image:
+  repository: idoping/healthservice
+  tag: latest
+
+service:
+  port: 8000
+
+configMapName: pg-config
+secretName: pg-secret
+
+studentName: ilukin

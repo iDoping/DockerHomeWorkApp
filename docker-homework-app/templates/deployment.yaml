@@ -1,22 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: healthservice
+  name: {{ .Release.Name }}-app
+  labels:
+    app: {{ .Release.Name }}-app
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: healthservice
+      app: {{ .Release.Name }}-app
   template:
     metadata:
       labels:
-        app: healthservice
+        app: {{ .Release.Name }}-app
     spec:
       containers:
-        - name: healthservice
-          image: idoping/healthservice:latest
+        - name: {{ .Release.Name }}-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: 8000
+            - containerPort: {{ .Values.service.port }}
           envFrom:
             - configMapRef:
                 name: pg-config
@@ -25,12 +27,12 @@ spec:
           livenessProbe:
             httpGet:
               path: /health/
-              port: 8000
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 5
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /health/
-              port: 8000
+              port: {{ .Values.service.port }}
             initialDelaySeconds: 2
             periodSeconds: 5
