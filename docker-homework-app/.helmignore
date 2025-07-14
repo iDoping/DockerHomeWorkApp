@@ -1,0 +1,45 @@
+# Существующее
+.DS_Store
+# Common VCS dirs
+.git/
+.gitignore
+.bzr/
+.bzrignore
+.hg/
+.hgignore
+.svn/
+# Common backup files
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+# IDEs
+.project
+.idea/
+*.tmproj
+.vscode/
+.vs/
+*.user
+*.suo
+
+# .NET / C#
+bin/
+obj/
+*.csproj
+*.sln
+*.pdb
+*.dll
+*.exe
+*.cache
+*.vsidx
+*.dbmdl
+*.log
+
+# Rider-specific
+.idea/
+*.DotSettings
+
+# Helm-specific (если вдруг ошибочно в корне)
+Chart.lock
+charts/
