@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: healthservice
+  name: docker-homework-app
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: healthservice
+      app: docker-homework-app
   template:
     metadata:
       labels:
-        app: healthservice
+        app: docker-homework-app
     spec:
       containers:
-        - name: healthservice
-          image: idoping/healthservice:latest
+        - name: docker-homework-app
+          image: idoping/docker-homework-app:latest
           ports:
             - containerPort: 8000
           envFrom:

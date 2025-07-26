@@ -1,0 +1,24 @@
+service:
+  port: 9187
+  targetPort: 9187
+
+envFrom:
+  - secretRef:
+      name: pg-exporter-secret
+
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+  scrapeTimeout: 10s
+  labels:
+    release: monitoring
+  relabelings: []
+
+config:
+  datasource:
+    host: my-postgres-postgresql.default.svc.cluster.local
+    user: exporter
+    password: Qzwxec123
+    database: users
+    sslmode: disable

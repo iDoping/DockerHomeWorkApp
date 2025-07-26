@@ -22,14 +22,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(x => x.Id)
             .HasName("users_pkey");
 
-		builder.Property(w => w.Id)
-			.HasColumnName("id")
-			.UseIdentityAlwaysColumn();
+        builder.Property(w => w.Id)
+            .HasColumnName("id")
+            .UseIdentityAlwaysColumn();
 
-		builder.Property(w => w.Username)
-			.HasColumnName("username")
-			.HasMaxLength(100)
-			.IsRequired(true);
+        builder.Property(w => w.Username)
+            .HasColumnName("username")
+            .HasMaxLength(100)
+            .IsRequired(true);
 
         builder.Property(w => w.Email)
             .HasColumnName("email")

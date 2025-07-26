@@ -1,7 +1,8 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ingress-otus
+  name: docker-homework-app-ingress
+  namespace: default
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
@@ -14,6 +15,6 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: healthservice
+                name: docker-homework-app
                 port:
                   number: 80

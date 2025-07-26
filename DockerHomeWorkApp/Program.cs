@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using Prometheus;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,13 +35,20 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "User API", Version = "v1" });
 });
 
-
 builder.Services.AddProjectServices();
 
 var app = builder.Build();
 
 app.UseErrorHandling();
 app.UseMiddleware<RequestLoggingMiddleware>();
+
+app.UseRouting();
+
+app.UseHttpMetrics();
+app.UseMetricServer();
+
+app.MapUserEndpoints();
+app.MapMetrics();
 
 app.MapHealthChecks("/health", new HealthCheckOptions
 {
@@ -72,7 +80,5 @@ if (app.Environment.IsDevelopment())
         options.RoutePrefix = "swagger";
     });
 }
-
-app.MapUserEndpoints();
 
 app.Run();
