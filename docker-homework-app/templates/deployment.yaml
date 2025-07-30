@@ -21,9 +21,11 @@ spec:
             - containerPort: {{ .Values.service.port }}
           envFrom:
             - configMapRef:
-                name: pg-config
+                name: {{ .Values.configMapName }}
             - secretRef:
-                name: pg-secret
+                name: {{ .Values.secretName }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           livenessProbe:
             httpGet:
               path: /health/
