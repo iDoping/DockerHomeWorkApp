@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.pg.config.name }}
+  labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
+data:
+  DbSettings__Host: {{ .Values.pg.config.host }}
+  DbSettings__Database: {{ .Values.pg.config.database }}
+  DbSettings__Port: "{{ .Values.pg.config.port }}"

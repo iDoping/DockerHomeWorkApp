@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: pg-config
-  namespace: default
-data:
-  DbSettings__Host: my-postgres-postgresql.default.svc.cluster.local
-  DbSettings__Database: users
-  DbSettings__Port: "5432"
