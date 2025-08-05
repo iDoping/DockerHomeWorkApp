@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}-init-sql
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
+    helm.sh/chart: {{ include "docker-homework-app.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  init.sql: |
+{{ .Files.Get "init/init.sql" | indent 4 }}

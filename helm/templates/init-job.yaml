@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}-db-init
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
+    helm.sh/chart: {{ include "docker-homework-app.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-db
+          image: bitnami/postgresql:16
+          command: ["psql"]
+          args:
+            - "-h"
+            - "{{ .Values.db.host }}"
+            - "-p"
+            - "{{ .Values.db.port }}"
+            - "-U"
+            - "{{ .Values.db.user }}"
+            - "-d"
+            - "{{ .Values.db.name }}"
+            - "-f"
+            - "/sql/init.sql"
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.secretName }}
+                  key: {{ .Values.db.secretPasswordKey }}
+          volumeMounts:
+            - name: sql-volume
+              mountPath: /sql
+      volumes:
+        - name: sql-volume
+          configMap:
+            name: {{ include "docker-homework-app.fullname" . }}-init-sql
+            items:
+              - key: init.sql
+                path: init.sql

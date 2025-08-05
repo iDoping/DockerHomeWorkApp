@@ -40,28 +40,12 @@ ingress:
 
 pg:
   config:
-    host: my-postgres-postgresql
+    host: my-postgres-postgresql.pg.svc.cluster.local
     port: 5432
     database: Users
   secret:
     username: iDoping
     password: Qzwxec123
-
-primary:
-  initdb:
-    scripts:
-      init.sql: |-
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(100) NOT NULL,
-            email VARCHAR(100) UNIQUE NOT NULL,
-            created_at TIMESTAMP DEFAULT NOW()
-        );
-        INSERT INTO users (username, email) VALUES
-            ('alice', 'alice@example.com'),
-            ('bob', 'bob@example.com'),
-            ('charlie', 'charlie@example.com')
-        ON CONFLICT (email) DO NOTHING;
 
 monitoring:
   enabled: true
@@ -79,3 +63,11 @@ monitoring:
     labels:
       release: monitoring
     interval: 15s
+
+db:
+  host: my-postgres-postgresql.pg.svc.cluster.local
+  port: 5432
+  user: iDoping
+  name: Users
+  secretName: docker-homework-app-pg-secret
+  secretPasswordKey: DbSettings__Password
