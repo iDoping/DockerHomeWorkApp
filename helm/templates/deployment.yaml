@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}
+  labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "docker-homework-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "docker-homework-app.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ include "docker-homework-app.containerPort" . }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "docker-homework-app.fullname" . }}-pg-config
+            - secretRef:
+                name: {{ include "docker-homework-app.fullname" . }}-pg-secret
+          livenessProbe:
+            httpGet:
+              path: {{ include "docker-homework-app.healthPath" . }}
+              port: {{ include "docker-homework-app.containerPort" . }}
+          readinessProbe:
+            httpGet:
+              path: {{ include "docker-homework-app.healthPath" . }}
+              port: {{ include "docker-homework-app.containerPort" . }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

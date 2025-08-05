@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.pg.config.name }}
+  name: {{ include "docker-homework-app.fullname" . }}-pg-config
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
 data:

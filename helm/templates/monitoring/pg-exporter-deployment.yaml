@@ -1,0 +1,33 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.pgExporter.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}-pg-exporter
+  labels:
+{{ include "docker-homework-app.labels" . | indent 4 }}
+    app.kubernetes.io/component: pg-exporter
+spec:
+  replicas: {{ .Values.monitoring.pgExporter.replicaCount }}
+  selector:
+    matchLabels:
+{{ include "docker-homework-app.selectorLabels" . | indent 6 }}
+      app.kubernetes.io/component: pg-exporter
+  template:
+    metadata:
+      labels:
+{{ include "docker-homework-app.selectorLabels" . | indent 8 }}
+        app.kubernetes.io/component: pg-exporter
+    spec:
+      containers:
+        - name: pg-exporter
+          image: "{{ .Values.monitoring.pgExporter.image.repository }}:{{ .Values.monitoring.pgExporter.image.tag }}"
+          ports:
+            - name: http-metrics
+              containerPort: 9187
+          env:
+            - name: DATA_SOURCE_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "docker-homework-app.fullname" . }}-pg-exporter-secret
+                  key: DATA_SOURCE_NAME
+{{- end }}

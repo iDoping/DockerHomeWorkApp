@@ -1,0 +1,16 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.pgExporter.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}-pg-exporter-svc
+  labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
+spec:
+  ports:
+    - name: http-metrics
+      port: 9187
+      targetPort: 9187
+  selector:
+    {{- include "docker-homework-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: pg-exporter
+{{- end }}

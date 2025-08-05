@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "docker-homework-app.serviceName" . }}
+  labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ include "docker-homework-app.containerPort" . }}
+
+  selector:
+    {{- include "docker-homework-app.selectorLabels" . | nindent 4 }}
