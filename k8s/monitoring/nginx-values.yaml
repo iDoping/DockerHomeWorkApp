@@ -1,6 +1,7 @@
 controller:
   metrics:
     enabled: true
+    bindAddress: 0.0.0.0
     service:
       create: true
       name: "metrics"
@@ -9,6 +10,7 @@ controller:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "10254"
+
     serviceMonitor:
       enabled: true
       namespace: monitoring

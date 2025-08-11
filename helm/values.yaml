@@ -51,6 +51,7 @@ monitoring:
   enabled: true
   pgExporter:
     enabled: true
+    namespace: monitoring
     replicaCount: 1
     image:
       repository: prometheuscommunity/postgres-exporter
@@ -58,6 +59,10 @@ monitoring:
     secret:
       username: exporter
       password: Qzwxec123
+    service:
+      port: 9187
+      targetPort: 9187
+      name: http-metrics
   serviceMonitor:
     enabled: true
     labels:
