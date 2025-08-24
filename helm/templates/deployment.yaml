@@ -1,3 +1,4 @@
+{{- $ext := default (dict "enabled" false "name" "") .Values.externalJwtSecret -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,25 +16,33 @@ spec:
       labels:
         {{- include "docker-homework-app.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: app
+      annotations:
+        {{- if not $ext.enabled }}
+        checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
+      serviceAccountName: {{ if .Values.serviceAccount.create }}{{ default (include "docker-homework-app.fullname" .) .Values.serviceAccount.name }}{{ else }}default{{ end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - containerPort: {{ include "docker-homework-app.containerPort" . }}
+              name: http
           envFrom:
             - configMapRef:
                 name: {{ include "docker-homework-app.fullname" . }}-pg-config
             - secretRef:
                 name: {{ include "docker-homework-app.fullname" . }}-pg-secret
+            - secretRef:
+                name: {{ if $ext.enabled }}{{ $ext.name }}{{ else }}{{ printf "%s-jwt-secret" (include "docker-homework-app.fullname" .) }}{{ end }}
           livenessProbe:
             httpGet:
               path: {{ include "docker-homework-app.healthPath" . }}
-              port: {{ include "docker-homework-app.containerPort" . }}
+              port: http
           readinessProbe:
             httpGet:
               path: {{ include "docker-homework-app.healthPath" . }}
-              port: {{ include "docker-homework-app.containerPort" . }}
+              port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

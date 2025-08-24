@@ -1,0 +1,520 @@
+﻿{
+  "info": {
+    "name": "DockerHomeWorkApp BFF Homework",
+    "_postman_id": "e2e-auth-profile-collection",
+    "description": "E2E: регистрация, логин, чтение/изменение профиля, проверка изоляции пользователей. Логирует запросы/ответы для newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1) Register user1",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "function rnd(n){return Math.random().toString(36).slice(2,2+n)}",
+              "const ts = Date.now();",
+              "const email = `user1_${ts}_${rnd(4)}@example.test`;",
+              "const password = rnd(10);",
+              "const firstName = `First1_${rnd(5)}`;",
+              "const lastName  = `Last1_${rnd(5)}`;",
+              "const newFirst  = `newFirst1_${rnd(5)}`;",
+              "const newLast   = `newLast1_${rnd(5)}`;",
+              "",
+              "pm.collectionVariables.set('user1_email', email);",
+              "pm.collectionVariables.set('user1_password', password);",
+              "pm.collectionVariables.set('user1_first', firstName);",
+              "pm.collectionVariables.set('user1_last',  lastName);",
+              "pm.collectionVariables.set('user1_new_first', newFirst);",
+              "pm.collectionVariables.set('user1_new_last',  newLast);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','POST', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "pm.test('register: 200', () => pm.response.code === 200);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('user1_id', json.userId);",
+              "console.log('user1Id ->', json.userId);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auth", "register" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{user1_email}}\",\n  \"password\": \"{{user1_password}}\",\n  \"firstName\": \"{{user1_first}}\",\n  \"lastName\": \"{{user1_last}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2) GET /me without auth -> 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','GET', pm.request.url.toString());",
+              "pm.test('unauth GET /me: 401', () => pm.response.code === 401);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        }
+      }
+    },
+    {
+      "name": "3) PUT /me without auth -> 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','PUT', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "pm.test('unauth PUT /me: 401', () => pm.response.code === 401);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Hacker\",\n  \"lastName\": \"Intruder\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4) Login user1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','POST', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('login: 200', () => pm.response.code === 200);",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token1', json.accessToken || json.token || json.access_token || '');",
+              "console.log('token1 ->', pm.collectionVariables.get('token1'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auth", "login" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{user1_email}}\",\n  \"password\": \"{{user1_password}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5) user1 PUT /me",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','PUT', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "pm.test('put /me: 200', () => pm.response.code === 200);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token1}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"{{user1_new_first}}\",\n  \"lastName\": \"{{user1_new_last}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6) user1 GET /me (verify)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','GET', pm.request.url.toString());",
+              "pm.test('get /me: 200', () => pm.response.code === 200);",
+              "const me = pm.response.json();",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('firstName matches', () => me.firstName === pm.collectionVariables.get('user1_new_first'));",
+              "pm.test('lastName matches',  () => me.lastName  === pm.collectionVariables.get('user1_new_last'));",
+              "pm.collectionVariables.set('user1_me_id', me.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token1}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        }
+      }
+    },
+    {
+      "name": "7) Register user2",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "function rnd(n){return Math.random().toString(36).slice(2,2+n)}",
+              "const ts = Date.now();",
+              "const email = `user2_${ts}_${rnd(4)}@example.test`;",
+              "const password = rnd(10);",
+              "const firstName = `First2_${rnd(5)}`;",
+              "const lastName  = `Last2_${rnd(5)}`;",
+              "const newFirst  = `newFirst2_${rnd(5)}`;",
+              "const newLast   = `newLast2_${rnd(5)}`;",
+              "",
+              "pm.collectionVariables.set('user2_email', email);",
+              "pm.collectionVariables.set('user2_password', password);",
+              "pm.collectionVariables.set('user2_first', firstName);",
+              "pm.collectionVariables.set('user2_last',  lastName);",
+              "pm.collectionVariables.set('user2_new_first', newFirst);",
+              "pm.collectionVariables.set('user2_new_last',  newLast);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','POST', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "pm.test('register: 200', () => pm.response.code === 200);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('user2_id', json.userId);",
+              "console.log('user2Id ->', json.userId);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auth", "register" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{user2_email}}\",\n  \"password\": \"{{user2_password}}\",\n  \"firstName\": \"{{user2_first}}\",\n  \"lastName\": \"{{user2_last}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "8) Login user2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','POST', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('login: 200', () => pm.response.code === 200);",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token2', json.accessToken || json.token || json.access_token || '');",
+              "console.log('token2 ->', pm.collectionVariables.get('token2'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auth", "login" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{user2_email}}\",\n  \"password\": \"{{user2_password}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "9) user2 GET /me (should be NOT user1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','GET', pm.request.url.toString());",
+              "pm.test('get /me: 200', () => pm.response.code === 200);",
+              "const me2 = pm.response.json();",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('user2 id != user1 id', () => String(me2.id) !== String(pm.collectionVariables.get('user1_id')));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token2}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        }
+      }
+    },
+    {
+      "name": "10) user2 PUT /me",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','PUT', pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body?.raw);",
+              "pm.test('put /me: 200', () => pm.response.code === 200);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token2}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"{{user2_new_first}}\",\n  \"lastName\": \"{{user2_new_last}}\"\n}"
+        }
+      }
+    },
+    {
+      "name": "11) user1 GET /me (verify unchanged by user2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('REQUEST','GET', pm.request.url.toString());",
+              "pm.test('get /me: 200', () => pm.response.code === 200);",
+              "const me1 = pm.response.json();",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('user1 remains newFirst1/newLast1', () => me1.firstName === pm.collectionVariables.get('user1_new_first') && me1.lastName === pm.collectionVariables.get('user1_new_last'));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token1}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/me",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "me" ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "token1",
+      "value": ""
+    },
+    {
+      "key": "token2",
+      "value": ""
+    },
+    {
+      "key": "user1_id",
+      "value": ""
+    },
+    {
+      "key": "user1_email",
+      "value": ""
+    },
+    {
+      "key": "user1_password",
+      "value": ""
+    },
+    {
+      "key": "user1_first",
+      "value": ""
+    },
+    {
+      "key": "user1_last",
+      "value": ""
+    },
+    {
+      "key": "user1_new_first",
+      "value": ""
+    },
+    {
+      "key": "user1_new_last",
+      "value": ""
+    },
+    {
+      "key": "user2_id",
+      "value": ""
+    },
+    {
+      "key": "user2_email",
+      "value": ""
+    },
+    {
+      "key": "user2_password",
+      "value": ""
+    },
+    {
+      "key": "user2_first",
+      "value": ""
+    },
+    {
+      "key": "user2_last",
+      "value": ""
+    },
+    {
+      "key": "user2_new_first",
+      "value": ""
+    },
+    {
+      "key": "user2_new_last",
+      "value": ""
+    }
+  ]
+}

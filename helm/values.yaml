@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: idoping/dockerhomeworkapp
-  tag: 1.0.2
+  tag: "1.0.4"
   pullPolicy: IfNotPresent
 
 containerPort: 8000
@@ -29,50 +29,57 @@ serviceAccount:
 ingress:
   enabled: true
   className: nginx
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  annotations: {}
   hosts:
     - host: arch.homework
       paths:
-        - path: /otusapp/ilukin/users(/|$)(.*)
-          pathType: ImplementationSpecific
+        - path: /
+          pathType: Prefix
   tls: []
 
 pg:
   config:
-    host: my-postgres-postgresql.pg.svc.cluster.local
+    host: "my-postgres-postgresql.pg.svc.cluster.local"
     port: 5432
-    database: Users
-  secret:
-    username: iDoping
-    password: Qzwxec123
+    database: "Users"
+
+  app:
+    username: "iDoping"
+    createSecret: true
+    secretName: "docker-homework-app-pg-secret"
+    password: "Qzwxec123"
+    passwordKey: "DbSettings__Password"
+
+  superuser:
+    createSecret: true
+    username: "postgres"
+    secretName: "docker-homework-app-pg-root"
+    passwordKey: "password"
+    password: "Qzwxec123"
 
 monitoring:
   enabled: true
   pgExporter:
     enabled: true
-    namespace: monitoring
     replicaCount: 1
     image:
       repository: prometheuscommunity/postgres-exporter
-      tag: v0.15.0
-    secret:
-      username: exporter
-      password: Qzwxec123
+      tag: v0.16.0
     service:
       port: 9187
       targetPort: 9187
       name: http-metrics
+    secret:
+      username: exporter
+      password: "Qzwxec123"
   serviceMonitor:
     enabled: true
     labels:
       release: monitoring
     interval: 15s
 
-db:
-  host: my-postgres-postgresql.pg.svc.cluster.local
-  port: 5432
-  user: iDoping
-  name: Users
-  secretName: docker-homework-app-pg-secret
-  secretPasswordKey: DbSettings__Password
+jwt:
+  issuer: DockerHomeWorkApp
+  audience: DockerHomeWorkApp
+  accessTokenMinutes: 60
+  secret: ""

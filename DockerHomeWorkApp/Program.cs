@@ -3,9 +3,9 @@ using DockerHomeWorkApp.DataContext;
 using DockerHomeWorkApp.Endpoints;
 using DockerHomeWorkApp.Middleware;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 using Prometheus;
 using System.Text.Json;
 
@@ -16,38 +16,30 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-builder.Services.Configure<DbSettings>(builder.Configuration.GetSection("DbSettings"));
-builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<DbSettings>>().Value);
-
-builder.Services.AddDbContext<AppDataContext>((sp, options) =>
+builder.Services.BindValidated<DbSettings>(builder.Configuration, "DbSettings");
+builder.Services.AddDbContextPool<AppDataContext>((sp, options) =>
 {
-    var dbSettings = sp.GetRequiredService<DbSettings>();
-    options.UseNpgsql(dbSettings.ConnectionString)
-           .UseSnakeCaseNamingConvention();
+    var db = sp.GetRequiredService<IOptions<DbSettings>>().Value;
+    options.UseNpgsql(db.ConnectionString).UseSnakeCaseNamingConvention();
 });
 
-builder.Services.AddHealthChecks()
-    .AddNpgSql(sp => sp.GetRequiredService<DbSettings>().ConnectionString, name: "npgsql");
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo { Title = "User API", Version = "v1" });
-});
-
+builder.Services.AddJwtAuth(builder.Configuration);
 builder.Services.AddProjectServices();
+builder.Services.AddHealthChecks().AddNpgSql(sp => sp.GetRequiredService<IOptions<DbSettings>>().Value.ConnectionString, name: "npgsql");
+builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 
 app.UseErrorHandling();
 app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseRouting();
-
 app.UseHttpMetrics();
-app.UseMetricServer();
-
-app.MapUserEndpoints();
 app.MapMetrics();
 
 app.MapHealthChecks("/health", new HealthCheckOptions
@@ -55,7 +47,6 @@ app.MapHealthChecks("/health", new HealthCheckOptions
     ResponseWriter = async (context, report) =>
     {
         context.Response.ContentType = "application/json";
-
         var response = new
         {
             status = report.Status.ToString(),
@@ -66,19 +57,15 @@ app.MapHealthChecks("/health", new HealthCheckOptions
                 error = e.Value.Exception?.Message
             })
         };
-
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));
     }
 });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "User API v1");
-        options.RoutePrefix = "swagger";
-    });
-}
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapAuthEndpoints();
+app.MapProfileEndpoints();
+app.MapUserEndpoints();
 
 app.Run();

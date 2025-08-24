@@ -11,4 +11,3 @@ public class DbSettings
     public string ConnectionString =>
         $"Host={Host};Port={Port};Database={Database};Username={Username};Password={Password}";
 }
-

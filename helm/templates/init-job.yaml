@@ -1,3 +1,4 @@
+{{- $su := .Values.pg.superuser | default dict -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -5,9 +6,11 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
-    helm.sh/chart: {{ include "docker-homework-app.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   backoffLimit: 2
   template:
@@ -16,24 +19,30 @@ spec:
       containers:
         - name: init-db
           image: bitnami/postgresql:16
-          command: ["psql"]
+          imagePullPolicy: IfNotPresent
+          command: ["bash","-ec"]
           args:
-            - "-h"
-            - "{{ .Values.db.host }}"
-            - "-p"
-            - "{{ .Values.db.port }}"
-            - "-U"
-            - "{{ .Values.db.user }}"
-            - "-d"
-            - "{{ .Values.db.name }}"
-            - "-f"
-            - "/sql/init.sql"
+            - |
+              echo "Waiting for PostgreSQL..."
+              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"; do
+                sleep 2
+              done
+              echo "PostgreSQL is ready, applying init.sql"
+              psql -v ON_ERROR_STOP=1 -f /sql/init.sql
           env:
+            - name: PGHOST
+              value: {{ .Values.pg.config.host | quote }}
+            - name: PGPORT
+              value: "{{ .Values.pg.config.port }}"
+            - name: PGDATABASE
+              value: {{ .Values.pg.config.database | quote }}
+            - name: PGUSER
+              value: {{ $su.username | default "postgres" | quote }}
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.db.secretName }}
-                  key: {{ .Values.db.secretPasswordKey }}
+                  name: {{ $su.secretName | default (printf "%s-pg-root" (include "docker-homework-app.fullname" .)) }}
+                  key: {{ $su.passwordKey | default "password" }}
           volumeMounts:
             - name: sql-volume
               mountPath: /sql
