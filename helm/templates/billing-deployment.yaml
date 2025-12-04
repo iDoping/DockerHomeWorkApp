@@ -1,0 +1,38 @@
+{{- if .Values.billingService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+  labels:
+    app: billing-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  replicas: {{ .Values.billingService.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+        app.kubernetes.io/part-of: docker-homework-app
+    spec:
+      containers:
+        - name: billing-service
+          image: "{{ .Values.billingService.image.repository }}:{{ .Values.billingService.image.tag }}"
+          imagePullPolicy: {{ .Values.billingService.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.billingService.containerPort }}
+          env:
+            - name: DbSettings__Host
+              value: {{ .Values.pg.config.host | quote }}
+            - name: DbSettings__Port
+              value: "{{ .Values.pg.config.port }}"
+            - name: DbSettings__Database
+              value: {{ .Values.pg.services.billing.database | quote }}
+            - name: DbSettings__Username
+              value: {{ .Values.pg.services.billing.username | quote }}
+            - name: DbSettings__Password
+              value: {{ .Values.pg.services.billing.password | quote }}
+{{- end }}

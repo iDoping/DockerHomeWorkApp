@@ -1,0 +1,17 @@
+{{- if .Values.deliveryService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: delivery-service
+  labels:
+    app: delivery-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app: delivery-service
+{{- end }}

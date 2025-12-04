@@ -1,0 +1,38 @@
+{{- if .Values.deliveryService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: delivery-service
+  labels:
+    app: delivery-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  replicas: {{ .Values.deliveryService.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: delivery-service
+  template:
+    metadata:
+      labels:
+        app: delivery-service
+        app.kubernetes.io/part-of: docker-homework-app
+    spec:
+      containers:
+        - name: delivery-service
+          image: "{{ .Values.deliveryService.image.repository }}:{{ .Values.deliveryService.image.tag }}"
+          imagePullPolicy: {{ .Values.deliveryService.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.deliveryService.containerPort }}
+          env:
+            - name: DbSettings__Host
+              value: {{ .Values.pg.config.host | quote }}
+            - name: DbSettings__Port
+              value: "{{ .Values.pg.config.port }}"
+            - name: DbSettings__Database
+              value: {{ .Values.pg.services.delivery.database | quote }}
+            - name: DbSettings__Username
+              value: {{ .Values.pg.services.delivery.username | quote }}
+            - name: DbSettings__Password
+              value: {{ .Values.pg.services.delivery.password | quote }}
+{{- end }}

@@ -1,0 +1,17 @@
+{{- if .Values.warehouseService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: warehouse-service
+  labels:
+    app: warehouse-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  selector:
+    app: warehouse-service
+{{- end }}

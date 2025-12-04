@@ -29,6 +29,9 @@ spec:
           ports:
             - containerPort: {{ include "docker-homework-app.containerPort" . }}
               name: http
+          env:
+            - name: Billing__BaseUrl
+              value: "http://billing-service"
           envFrom:
             - configMapRef:
                 name: {{ include "docker-homework-app.fullname" . }}-pg-config

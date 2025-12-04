@@ -1,4 +1,3 @@
-{{- $su := .Values.pg.superuser | default dict -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -14,11 +13,15 @@ metadata:
 spec:
   backoffLimit: 2
   template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
+        {{- include "docker-homework-app.labels" . | nindent 8 }}
     spec:
       restartPolicy: Never
       containers:
         - name: init-db
-          image: bitnami/postgresql:16
+          image: registry-1.docker.io/bitnami/postgresql:latest
           imagePullPolicy: IfNotPresent
           command: ["bash","-ec"]
           args:
@@ -28,21 +31,23 @@ spec:
                 sleep 2
               done
               echo "PostgreSQL is ready, applying init.sql"
-              psql -v ON_ERROR_STOP=1 -f /sql/init.sql
+              psql -v ON_ERROR_STOP=1 \
+                   -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" \
+                   -f /sql/init.sql
           env:
             - name: PGHOST
               value: {{ .Values.pg.config.host | quote }}
             - name: PGPORT
-              value: "{{ .Values.pg.config.port }}"
+              value: {{ .Values.pg.config.port | quote }}
             - name: PGDATABASE
-              value: {{ .Values.pg.config.database | quote }}
+              value: "postgres"
             - name: PGUSER
-              value: {{ $su.username | default "postgres" | quote }}
+              value: {{ .Values.pg.superuser.username | default "postgres" | quote }}
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ $su.secretName | default (printf "%s-pg-root" (include "docker-homework-app.fullname" .)) }}
-                  key: {{ $su.passwordKey | default "password" }}
+                  name: {{ .Values.pg.superuser.secretName | default (printf "%s-pg-root" (include "docker-homework-app.fullname" .)) }}
+                  key: {{ .Values.pg.superuser.passwordKey | default "password" }}
           volumeMounts:
             - name: sql-volume
               mountPath: /sql

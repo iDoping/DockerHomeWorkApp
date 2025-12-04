@@ -10,22 +10,39 @@ public interface IAuthService
     Task<(string token, TimeSpan expires)> LoginAsync(LoginRequest req, CancellationToken ct);
 }
 
-public sealed class AuthService(IUsersRepository repo, IPasswordHasher hasher, IJwtTokenService jwt) : IAuthService
+public sealed class AuthService(
+    IUsersRepository repo, 
+    IPasswordHasher hasher, 
+    IJwtTokenService jwt,
+    IBillingClient billingClient
+    ) : IAuthService
 {
     private readonly IUsersRepository _repo = repo;
     private readonly IPasswordHasher _hasher = hasher;
     private readonly IJwtTokenService _jwt = jwt;
+    private readonly IBillingClient _billingClient = billingClient;
 
     public async Task<long> RegisterAsync(RegisterRequest req, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(req.Email)) throw new ArgumentException("Email is required");
-        if (string.IsNullOrWhiteSpace(req.Password)) throw new ArgumentException("Password is required");
-
         var existing = await _repo.GetByEmailAsync(req.Email, ct);
-        if (existing is not null) throw new InvalidOperationException("Email already exists");
+
+        if (existing is not null)
+        {
+            throw new InvalidOperationException("User with this email already exists");
+        }
 
         var (hash, salt) = _hasher.Hash(req.Password);
-        var id = await _repo.CreateAsync(req.Email, hash, salt, req.FirstName, req.LastName, ct);
+
+        var id = await _repo.CreateAsync(
+            req.Email,
+            hash,
+            salt,
+            req.FirstName,
+            req.LastName,
+            ct);
+
+        await _billingClient.CreateAccountAsync(id, ct);
+
         return id;
     }
 

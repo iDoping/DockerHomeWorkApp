@@ -1,0 +1,531 @@
+{
+  "info": {
+    "_postman_id": "816c12ef-d7ec-4811-9aa6-09b48d74ae4e",
+    "name": "Stream Processing Homework - Orders/Billing/Notifications (final)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1) sp - Register user",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "function rnd(n){ return Math.random().toString(36).slice(2, 2 + n); }",
+              "",
+              "const ts = Date.now();",
+              "const email = `sp_user_${ts}_${rnd(4)}@example.test`;",
+              "const password = rnd(10);",
+              "",
+              "pm.collectionVariables.set('sp_user_email', email);",
+              "pm.collectionVariables.set('sp_user_password', password);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp register: 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+              "",
+              "let json;",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "    pm.test('sp register: тело — валидный JSON', function () { throw e; });",
+              "}",
+              "",
+              "const userId = json.userId || json.id;",
+              "pm.test('sp register: есть userId', function () {",
+              "    pm.expect(userId).to.be.a('number');",
+              "});",
+              "",
+              "pm.collectionVariables.set('sp_user_id', userId);",
+              "console.log('sp_user_id ->', userId);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\": \"{{sp_user_email}}\", \"password\": \"{{sp_user_password}}\", \"firstName\": \"SpFirst\", \"lastName\": \"SpLast\"}"
+        },
+        "url": "{{baseUrl}}/auth/register"
+      },
+      "response": []
+    },
+    {
+      "name": "2) sp - Billing account exists",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp billing exists: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('sp billing: userId совпадает', function () {",
+              "    pm.expect(json.userId).to.eql(Number(pm.collectionVariables.get('sp_user_id')));",
+              "});",
+              "",
+              "pm.collectionVariables.set('sp_balance_initial', json.balance);",
+              "console.log('sp_balance_initial ->', json.balance);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/billing/accounts/{{sp_user_id}}"
+      },
+      "response": []
+    },
+    {
+      "name": "3) sp - Deposit",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp deposit: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('sp deposit: есть balance', function () {",
+              "    pm.expect(json.balance).to.be.a('number');",
+              "});",
+              "",
+              "pm.collectionVariables.set('sp_balance_after_deposit', json.balance);",
+              "console.log('sp_balance_after_deposit ->', json.balance);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"amount\": 100000}"
+        },
+        "url": "{{baseUrl}}/billing/accounts/{{sp_user_id}}/deposit"
+      },
+      "response": []
+    },
+    {
+      "name": "4) sp - Notifications before",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp notifications before: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "let list;",
+              "try { list = pm.response.json(); } catch (e) { list = []; }",
+              "if (!Array.isArray(list)) list = [];",
+              "",
+              "pm.collectionVariables.set('sp_notifications_before', list.length);",
+              "console.log('sp_notifications_before ->', list.length);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/notifications?userId={{sp_user_id}}"
+      },
+      "response": []
+    },
+    {
+      "name": "5) sp - Order success",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const userId = Number(pm.collectionVariables.get('sp_user_id'));",
+              "const price = 1000;",
+              "const body = { userId, price };",
+              "pm.collectionVariables.set('sp_order_price_success', price);",
+              "pm.request.body.raw = JSON.stringify(body, null, 2);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp order success: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const orderId = json.id || json.orderId;",
+              "pm.test('sp order success: есть orderId', function () {",
+              "    pm.expect(orderId).to.be.a('number');",
+              "});",
+              "",
+              "pm.collectionVariables.set('sp_order_id_success', orderId);",
+              "console.log('sp_order_id_success ->', orderId);",
+              "// Статус заказа не проверяем, т.к. в реализации он всегда 0 (Pending)"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{baseUrl}}/orders"
+      },
+      "response": []
+    },
+    {
+      "name": "6) sp - Billing after success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp billing after success: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const before = Number(pm.collectionVariables.get('sp_balance_after_deposit'));",
+              "const price  = Number(pm.collectionVariables.get('sp_order_price_success'));",
+              "",
+              "pm.test('sp billing after success: баланс уменьшился на сумму заказа', function () {",
+              "    pm.expect(json.balance).to.eql(before - price);",
+              "});",
+              "",
+              "pm.collectionVariables.set('sp_balance_after_success', json.balance);",
+              "console.log('sp_balance_after_success ->', json.balance);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/billing/accounts/{{sp_user_id}}"
+      },
+      "response": []
+    },
+    {
+      "name": "7) sp - Notifications after success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp notifications after success: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "let list;",
+              "try { list = pm.response.json(); } catch (e) { list = []; }",
+              "if (!Array.isArray(list)) list = [];",
+              "",
+              "const before = Number(pm.collectionVariables.get('sp_notifications_before'));",
+              "const after  = list.length;",
+              "",
+              "pm.test('sp notifications after success: стало больше', function () {",
+              "    pm.expect(after).to.be.above(before);",
+              "});",
+              "",
+              "pm.collectionVariables.set('sp_notifications_after_success', after);",
+              "console.log('sp_notifications_after_success ->', after);",
+              "",
+              "if (list.length > 0) {",
+              "    const last = list[list.length - 1];",
+              "    pm.test('sp notif success: userId совпадает', function () {",
+              "        pm.expect(last.userId).to.eql(Number(pm.collectionVariables.get('sp_user_id')));",
+              "    });",
+              "    const txt = String(last.type || last.subject || last.body || '').toLowerCase();",
+              "    pm.test('sp notif success: это письмо счастья', function () {",
+              "        pm.expect(txt).to.match(/success|успеш/);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/notifications?userId={{sp_user_id}}"
+      },
+      "response": []
+    },
+    {
+      "name": "8) sp - Order fail",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const userId = Number(pm.collectionVariables.get('sp_user_id'));",
+              "const price = 100000000;",
+              "const body = { userId, price };",
+              "pm.collectionVariables.set('sp_order_price_fail', price);",
+              "pm.request.body.raw = JSON.stringify(body, null, 2);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp order fail: ожидаемый статус', function () {",
+              "    pm.expect([200, 400]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let json;",
+              "try { json = pm.response.json(); } catch (e) { json = null; }",
+              "",
+              "if (json) {",
+              "    const orderId = json.id || json.orderId;",
+              "    if (orderId !== undefined) {",
+              "        pm.collectionVariables.set('sp_order_id_fail', orderId);",
+              "        console.log('sp_order_id_fail ->', orderId);",
+              "    }",
+              "    // Статус заказа в ответе не проверяем, т.к. реализация возвращает 0",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": "{{baseUrl}}/orders"
+      },
+      "response": []
+    },
+    {
+      "name": "9) sp - Billing after fail",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp billing after fail: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const prev = Number(pm.collectionVariables.get('sp_balance_after_success'));",
+              "",
+              "pm.test('sp billing after fail: баланс не изменился', function () {",
+              "    pm.expect(json.balance).to.eql(prev);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/billing/accounts/{{sp_user_id}}"
+      },
+      "response": []
+    },
+    {
+      "name": "10) sp - Notifications after fail",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+              "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+              "console.log('RES.STATUS', pm.response.code);",
+              "console.log('RES.BODY', pm.response.text());",
+              "pm.test('sp notifications after fail: 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "let list;",
+              "try { list = pm.response.json(); } catch (e) { list = []; }",
+              "if (!Array.isArray(list)) list = [];",
+              "",
+              "const afterSuccess = Number(pm.collectionVariables.get('sp_notifications_after_success'));",
+              "const afterFail    = list.length;",
+              "",
+              "pm.test('sp notifications after fail: стало ещё больше', function () {",
+              "    pm.expect(afterFail).to.be.above(afterSuccess);",
+              "});",
+              "",
+              "// Ищем именно письмо горя (failure)",
+              "const failure = list.find(n => {",
+              "    const type = String(n.type || '').toLowerCase();",
+              "    const subj = String(n.subject || '').toLowerCase();",
+              "    const body = String(n.body || '').toLowerCase();",
+              "    return type === 'failure' ||",
+              "           subj.includes('не удалось') ||",
+              "           body.includes('не удалось') ||",
+              "           body.includes('недостаточно средств');",
+              "});",
+              "",
+              "pm.test('sp notif fail: это письмо горя', function () {",
+              "    pm.expect(failure, 'есть уведомление о неудачном платеже').to.be.an('object');",
+              "});",
+              "",
+              "if (failure) {",
+              "    pm.test('sp notif fail: userId совпадает', function () {",
+              "        pm.expect(failure.userId).to.eql(Number(pm.collectionVariables.get('sp_user_id')));",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/notifications?userId={{sp_user_id}}"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "sp_user_email",
+      "value": ""
+    },
+    {
+      "key": "sp_user_password",
+      "value": ""
+    },
+    {
+      "key": "sp_user_id",
+      "value": ""
+    },
+    {
+      "key": "sp_order_price_success",
+      "value": "1000"
+    },
+    {
+      "key": "sp_order_price_fail",
+      "value": "100000000"
+    },
+    {
+      "key": "sp_balance_initial",
+      "value": ""
+    },
+    {
+      "key": "sp_balance_after_deposit",
+      "value": ""
+    },
+    {
+      "key": "sp_balance_after_success",
+      "value": ""
+    },
+    {
+      "key": "sp_notifications_before",
+      "value": ""
+    },
+    {
+      "key": "sp_notifications_after_success",
+      "value": ""
+    },
+    {
+      "key": "sp_order_id_success",
+      "value": ""
+    },
+    {
+      "key": "sp_order_id_fail",
+      "value": ""
+    }
+  ]
+}

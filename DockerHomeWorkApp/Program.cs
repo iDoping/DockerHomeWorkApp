@@ -2,12 +2,11 @@ using DockerHomeWorkApp.Core;
 using DockerHomeWorkApp.DataContext;
 using DockerHomeWorkApp.Endpoints;
 using DockerHomeWorkApp.Middleware;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using DockerHomeWorkApp.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Prometheus;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,9 +22,17 @@ builder.Services.AddDbContextPool<AppDataContext>((sp, options) =>
     options.UseNpgsql(db.ConnectionString).UseSnakeCaseNamingConvention();
 });
 
+var billingBaseUrl = builder.Configuration["Billing:BaseUrl"] ?? "http://billing-service";
+
+builder.Services.AddHttpClient<IBillingClient, BillingClient>(client =>
+{
+    client.BaseAddress = new Uri(billingBaseUrl);
+});
+
 builder.Services.AddJwtAuth(builder.Configuration);
 builder.Services.AddProjectServices();
-builder.Services.AddHealthChecks().AddNpgSql(sp => sp.GetRequiredService<IOptions<DbSettings>>().Value.ConnectionString, name: "npgsql");
+builder.Services.AddHealthChecks()
+    .AddNpgSql(sp => sp.GetRequiredService<IOptions<DbSettings>>().Value.ConnectionString, name: "DbSettings");
 builder.Services.AddSwaggerWithJwt();
 
 var app = builder.Build();
@@ -42,27 +49,13 @@ app.UseRouting();
 app.UseHttpMetrics();
 app.MapMetrics();
 
-app.MapHealthChecks("/health", new HealthCheckOptions
-{
-    ResponseWriter = async (context, report) =>
-    {
-        context.Response.ContentType = "application/json";
-        var response = new
-        {
-            status = report.Status.ToString(),
-            checks = report.Entries.Select(e => new
-            {
-                name = e.Key,
-                status = e.Value.Status.ToString(),
-                error = e.Value.Exception?.Message
-            })
-        };
-        await context.Response.WriteAsync(JsonSerializer.Serialize(response));
-    }
-});
+app.MapHealthChecks("/health");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();

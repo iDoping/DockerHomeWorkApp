@@ -1,0 +1,42 @@
+{{- if .Values.orderService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  labels:
+    app: order-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  replicas: {{ .Values.orderService.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+        app.kubernetes.io/part-of: docker-homework-app
+    spec:
+      containers:
+        - name: order-service
+          image: "{{ .Values.orderService.image.repository }}:{{ .Values.orderService.image.tag }}"
+          imagePullPolicy: {{ .Values.orderService.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.orderService.containerPort }}
+          env:
+            - name: DbSettings__Host
+              value: {{ .Values.pg.config.host | quote }}
+            - name: DbSettings__Port
+              value: "{{ .Values.pg.config.port }}"
+            - name: DbSettings__Database
+              value: {{ .Values.pg.services.order.database | quote }}
+            - name: DbSettings__Username
+              value: {{ .Values.pg.services.order.username | quote }}
+            - name: DbSettings__Password
+              value: {{ .Values.pg.services.order.password | quote }}
+            - name: Billing__BaseUrl
+              value: "http://billing-service"
+            - name: Notifications__BaseUrl
+              value: "http://notification-service"
+{{- end }}

@@ -3,7 +3,7 @@ replicaCount: 2
 image:
   repository: idoping/dockerhomeworkapp
   tag: "1.0.4"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 containerPort: 8000
 
@@ -35,27 +35,74 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+
+        - path: /orders
+          pathType: Prefix
+          serviceName: order-service
+          servicePort: 80
+
+        - path: /billing
+          pathType: Prefix
+          serviceName: billing-service
+          servicePort: 80
+
+        - path: /notifications
+          pathType: Prefix
+          serviceName: notification-service
+          servicePort: 80
+
+        - path: /warehouse
+          pathType: Prefix
+          serviceName: warehouse-service
+          servicePort: 80
+        
+        - path: /delivery
+          pathType: Prefix
+          serviceName: delivery-service
+          servicePort: 80
   tls: []
 
 pg:
   config:
     host: "my-postgres-postgresql.pg.svc.cluster.local"
-    port: 5432
-    database: "Users"
+    port: "5432"
+    database: "users"
 
   app:
     username: "iDoping"
+    password: "Qzwxec123"
     createSecret: true
     secretName: "docker-homework-app-pg-secret"
-    password: "Qzwxec123"
     passwordKey: "DbSettings__Password"
 
   superuser:
-    createSecret: true
     username: "postgres"
+    password: "Qzwxec123"
+    createSecret: true
     secretName: "docker-homework-app-pg-root"
     passwordKey: "password"
-    password: "Qzwxec123"
+
+  services:
+    order:
+      database: "orders"
+      username: "order_service"
+      password: "Qzwxec123"
+    billing:
+      database: "billing"
+      username: "billing_service"
+      password: "Qzwxec123"
+    notifications:
+      database: "notifications"
+      username: "notification_service"
+      password: "Qzwxec123"
+    warehouse:
+      username: "warehouse_service"
+      database: "warehouse"
+      password: "Qzwxec123"
+    delivery:
+      username: "delivery_service"
+      database: "delivery"
+      password: "Qzwxec123"
 
 monitoring:
   enabled: true
@@ -83,3 +130,51 @@ jwt:
   audience: DockerHomeWorkApp
   accessTokenMinutes: 60
   secret: ""
+
+orderService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: idoping/orderservice
+    tag: "1.0.0"
+    pullPolicy: Always
+  containerPort: 8001
+
+billingService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: idoping/billingservice
+    tag: "1.0.0"
+    pullPolicy: Always
+  containerPort: 8002
+
+notificationService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: idoping/notificationservice
+    tag: "1.0.0"
+    pullPolicy: Always
+  containerPort: 8003
+
+warehouseService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: idoping/warehouseservice
+    tag: "1.0.0"
+    pullPolicy: Always
+  containerPort: 8004
+
+deliveryService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: idoping/deliveryservice
+    tag: "1.0.0"
+    pullPolicy: Always
+  containerPort: 8005
+
+microservicesIngress:
+  enabled: true

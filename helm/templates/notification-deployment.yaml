@@ -1,0 +1,38 @@
+{{- if .Values.notificationService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  labels:
+    app: notification-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  replicas: {{ .Values.notificationService.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        app.kubernetes.io/part-of: docker-homework-app
+    spec:
+      containers:
+        - name: notification-service
+          image: "{{ .Values.notificationService.image.repository }}:{{ .Values.notificationService.image.tag }}"
+          imagePullPolicy: {{ .Values.notificationService.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.notificationService.containerPort }}
+          env:
+            - name: DbSettings__Host
+              value: {{ .Values.pg.config.host | quote }}
+            - name: DbSettings__Port
+              value: "{{ .Values.pg.config.port }}"
+            - name: DbSettings__Database
+              value: {{ .Values.pg.services.notifications.database | quote }}
+            - name: DbSettings__Username
+              value: {{ .Values.pg.services.notifications.username | quote }}
+            - name: DbSettings__Password
+              value: {{ .Values.pg.services.notifications.password | quote }}
+{{- end }}

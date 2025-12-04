@@ -1,0 +1,38 @@
+{{- if .Values.warehouseService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warehouse-service
+  labels:
+    app: warehouse-service
+    app.kubernetes.io/part-of: docker-homework-app
+spec:
+  replicas: {{ .Values.warehouseService.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: warehouse-service
+  template:
+    metadata:
+      labels:
+        app: warehouse-service
+        app.kubernetes.io/part-of: docker-homework-app
+    spec:
+      containers:
+        - name: warehouse-service
+          image: "{{ .Values.warehouseService.image.repository }}:{{ .Values.warehouseService.image.tag }}"
+          imagePullPolicy: {{ .Values.warehouseService.image.pullPolicy | default "IfNotPresent" }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.warehouseService.containerPort }}
+          env:
+            - name: DbSettings__Host
+              value: {{ .Values.pg.config.host | quote }}
+            - name: DbSettings__Port
+              value: "{{ .Values.pg.config.port }}"
+            - name: DbSettings__Database
+              value: {{ .Values.pg.services.warehouse.database | quote }}
+            - name: DbSettings__Username
+              value: {{ .Values.pg.services.warehouse.username | quote }}
+            - name: DbSettings__Password
+              value: {{ .Values.pg.services.warehouse.password | quote }}
+{{- end }}

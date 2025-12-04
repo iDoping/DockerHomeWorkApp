@@ -21,9 +21,10 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "docker-homework-app.serviceName" $ }}
+                # если serviceName не задан у path – идём в основной сервис, как раньше
+                name: {{ default (include "docker-homework-app.serviceName" $) .serviceName }}
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: {{ default $.Values.service.port .servicePort }}
           {{- end }}
     {{- end }}
   {{- if .Values.ingress.tls }}
