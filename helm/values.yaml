@@ -136,7 +136,7 @@ orderService:
   replicaCount: 1
   image:
     repository: idoping/orderservice
-    tag: "1.0.0"
+    tag: "1.0.3"
     pullPolicy: Always
   containerPort: 8001
 
@@ -145,7 +145,7 @@ billingService:
   replicaCount: 1
   image:
     repository: idoping/billingservice
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: Always
   containerPort: 8002
 
@@ -154,7 +154,7 @@ notificationService:
   replicaCount: 1
   image:
     repository: idoping/notificationservice
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: Always
   containerPort: 8003
 
@@ -163,7 +163,7 @@ warehouseService:
   replicaCount: 1
   image:
     repository: idoping/warehouseservice
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: Always
   containerPort: 8004
 
@@ -172,7 +172,7 @@ deliveryService:
   replicaCount: 1
   image:
     repository: idoping/deliveryservice
-    tag: "1.0.0"
+    tag: "1.0.1"
     pullPolicy: Always
   containerPort: 8005
 

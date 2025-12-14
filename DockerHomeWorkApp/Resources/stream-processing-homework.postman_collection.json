@@ -1,7 +1,7 @@
 {
   "info": {
     "_postman_id": "816c12ef-d7ec-4811-9aa6-09b48d74ae4e",
-    "name": "Stream Processing Homework - Orders/Billing/Notifications (final)",
+    "name": "Stream Processing Homework - Orders/Billing/Notifications",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -189,9 +189,9 @@
             "type": "text/javascript",
             "exec": [
               "const userId = Number(pm.collectionVariables.get('sp_user_id'));",
-              "const price = 1000;",
-              "const body = { userId, price };",
-              "pm.collectionVariables.set('sp_order_price_success', price);",
+              "const amount = 1000;",
+              "const body = { userId, amount };",
+              "pm.collectionVariables.set('sp_order_price_success', amount);",
               "pm.request.body.raw = JSON.stringify(body, null, 2);"
             ]
           }

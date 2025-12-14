@@ -106,12 +106,12 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{{ .Values.pg.servi
 -- GRANT CONNECT для всех нужных баз
 DO $do$
 DECLARE
-  v_app_user      text := '{{ .Values.pg.app.username }}';
-  v_order_user    text := '{{ .Values.pg.services.order.username }}';
-  v_billing_user  text := '{{ .Values.pg.services.billing.username }}';
-  v_notif_user    text := '{{ .Values.pg.services.notifications.username }}';
+  v_app_user       text := '{{ .Values.pg.app.username }}';
+  v_order_user     text := '{{ .Values.pg.services.order.username }}';
+  v_billing_user   text := '{{ .Values.pg.services.billing.username }}';
+  v_notif_user     text := '{{ .Values.pg.services.notifications.username }}';
   v_warehouse_user text := '{{ .Values.pg.services.warehouse.username }}';
-  v_delivery_user text := '{{ .Values.pg.services.delivery.username }}';
+  v_delivery_user  text := '{{ .Values.pg.services.delivery.username }}';
 
   v_users_db      text := 'users';
   v_orders_db     text := '{{ .Values.pg.services.order.database }}';
@@ -174,12 +174,26 @@ $do$;
 \connect {{ .Values.pg.services.order.database }}
 
 CREATE TABLE IF NOT EXISTS orders (
+  id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id          BIGINT NOT NULL,
+  amount           NUMERIC(18,2) NOT NULL,
+  status           SMALLINT NOT NULL,
+  idempotency_key  TEXT NULL,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_orders_user_idempotency UNIQUE (user_id, idempotency_key)
+);
+
+CREATE TABLE IF NOT EXISTS order_request_keys (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  request_key TEXT NOT NULL,
   user_id     BIGINT NOT NULL,
   amount      NUMERIC(18,2) NOT NULL,
-  status      TEXT NOT NULL,
+  order_id    BIGINT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_order_request_keys_request_key
+  ON order_request_keys (request_key);
 
 DO $do$
 DECLARE
@@ -192,6 +206,7 @@ BEGIN
   EXECUTE format('ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO %I', v_order_user);
 END
 $do$;
+
 
 --------------------------------
 -- BILLING
@@ -264,6 +279,7 @@ CREATE TABLE IF NOT EXISTS warehouse_items (
   name              TEXT NOT NULL,
   total_quantity    INT NOT NULL,
   reserved_quantity INT NOT NULL DEFAULT 0,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -285,14 +301,13 @@ $do$;
 \connect {{ .Values.pg.services.delivery.database }}
 
 CREATE TABLE IF NOT EXISTS delivery_slots (
-  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  order_id    BIGINT NOT NULL,
-  user_id     BIGINT NOT NULL,
-  address     TEXT NOT NULL,
-  slot_time   TIMESTAMPTZ NOT NULL,
-  courier_id  BIGINT NOT NULL,
-  status      TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  start_at       TIMESTAMPTZ NOT NULL,
+  end_at         TIMESTAMPTZ NOT NULL,
+  capacity       INT NOT NULL,
+  reserved_count INT NOT NULL DEFAULT 0,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 DO $do$

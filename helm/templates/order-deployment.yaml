@@ -39,4 +39,8 @@ spec:
               value: "http://billing-service"
             - name: Notifications__BaseUrl
               value: "http://notification-service"
+            - name: Warehouse__BaseUrl
+              value: "http://warehouse-service"
+            - name: Delivery__BaseUrl
+              value: "http://delivery-service"
 {{- end }}

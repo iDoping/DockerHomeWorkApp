@@ -1,0 +1,788 @@
+{
+    "info": {
+        "_postman_id": "00000000-0000-4000-8000-000000000123",
+        "name": "Distributed Transactions Homework - Orders/Billing/Warehouse/Delivery",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1) dt - Register user (for billing & notifications)",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "function rnd(n){ return Math.random().toString(36).slice(2, 2 + n); }",
+                            "",
+                            "const ts = Date.now();",
+                            "const email = `dt_user_${ts}_${rnd(4)}@example.test`;",
+                            "const password = rnd(10);",
+                            "",
+                            "pm.collectionVariables.set('dt_user_email', email);",
+                            "pm.collectionVariables.set('dt_user_password', password);"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt register: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try {",
+                            "    json = pm.response.json();",
+                            "} catch (e) {",
+                            "    pm.test('dt register: тело — валидный JSON', function () { throw e; });",
+                            "}",
+                            "",
+                            "const userId = json.userId || json.id;",
+                            "pm.test('dt register: есть userId', function () {",
+                            "    pm.expect(userId).to.be.a('number');",
+                            "});",
+                            "",
+                            "pm.collectionVariables.set('dt_user_id', userId);",
+                            "console.log('dt_user_id ->', userId);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\"email\": \"{{dt_user_email}}\", \"password\": \"{{dt_user_password}}\", \"firstName\": \"DtFirst\", \"lastName\": \"DtLast\"}"
+                },
+                "url": "{{baseUrl}}/auth/register"
+            },
+            "response": []
+        },
+        {
+            "name": "2) dt - Billing account exists",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt billing exists: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "pm.test('dt billing: userId совпадает', function () {",
+                            "    pm.expect(json.userId).to.eql(Number(pm.collectionVariables.get('dt_user_id')));",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/billing/accounts/{{dt_user_id}}"
+            },
+            "response": []
+        },
+        {
+            "name": "3) dt - Deposit for saga user",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt deposit: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "pm.test('dt deposit: есть balance', function () {",
+                            "    pm.expect(json.balance).to.be.a('number');",
+                            "});",
+                            "",
+                            "pm.collectionVariables.set('dt_balance_after_deposit', json.balance);",
+                            "console.log('dt_balance_after_deposit ->', json.balance);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\"amount\": 100000}"
+                },
+                "url": "{{baseUrl}}/billing/accounts/{{dt_user_id}}/deposit"
+            },
+            "response": []
+        },
+        {
+            "name": "4) dt - Notifications before any orders",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt notifications before: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let list;",
+                            "try { list = pm.response.json(); } catch (e) { list = []; }",
+                            "if (!Array.isArray(list)) list = [];",
+                            "",
+                            "pm.collectionVariables.set('dt_notifications_before', list.length);",
+                            "console.log('dt_notifications_before ->', list.length);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/notifications?userId={{dt_user_id}}"
+            },
+            "response": []
+        },
+        {
+            "name": "5) dt - Init warehouse item OK",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt warehouse ok: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"sku\": \"{{dt_sku_ok}}\",\n  \"name\": \"Saga OK item\",\n  \"totalQuantity\": 10\n}"
+                },
+                "url": "{{baseUrl}}/warehouse/items"
+            },
+            "response": []
+        },
+        {
+            "name": "6) dt - Init warehouse item LOW STOCK",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt warehouse low: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"sku\": \"{{dt_sku_low}}\",\n  \"name\": \"Saga LOW STOCK item\",\n  \"totalQuantity\": 1\n}"
+                },
+                "url": "{{baseUrl}}/warehouse/items"
+            },
+            "response": []
+        },
+        {
+            "name": "7) dt - Init delivery slot OK",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt delivery slot ok: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "const slotId = json.id || json.slotId || json.slotID;",
+                            "pm.test('dt delivery slot ok: есть id слота', function () {",
+                            "    pm.expect(slotId).to.be.a('number');",
+                            "});",
+                            "pm.collectionVariables.set('dt_slot_ok', slotId);",
+                            "console.log('dt_slot_ok ->', slotId);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"startAt\": \"2025-12-09T10:00:00Z\",\n  \"endAt\": \"2025-12-09T11:00:00Z\",\n  \"capacity\": 10\n}"
+                },
+                "url": "{{baseUrl}}/delivery/slots"
+            },
+            "response": []
+        },
+        {
+            "name": "8) dt - Init delivery slot OVERBOOKED (capacity=0)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt delivery slot overbooked: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "const slotId = json.id || json.slotId || json.slotID;",
+                            "pm.test('dt delivery slot overbooked: есть id слота', function () {",
+                            "    pm.expect(slotId).to.be.a('number');",
+                            "});",
+                            "pm.collectionVariables.set('dt_slot_overbooked', slotId);",
+                            "console.log('dt_slot_overbooked ->', slotId);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"startAt\": \"2025-12-09T12:00:00Z\",\n  \"endAt\": \"2025-12-09T13:00:00Z\",\n  \"capacity\": 0\n}"
+                },
+                "url": "{{baseUrl}}/delivery/slots"
+            },
+            "response": []
+        },
+        {
+            "name": "9) dt - Order success (Saga OK)",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "const userId = Number(pm.collectionVariables.get('dt_user_id'));",
+                            "const sku = pm.collectionVariables.get('dt_sku_ok');",
+                            "const slotId = Number(pm.collectionVariables.get('dt_slot_ok'));",
+                            "",
+                            "const body = {",
+                            "  userId: userId,",
+                            "  sku: sku,",
+                            "  quantity: 2,",
+                            "  amount: 1000,",
+                            "  deliveryAddress: 'Москва, успех саги',",
+                            "  slotTime: '2025-12-09T10:00:00Z',",
+                            "  slotId: slotId",
+                            "};",
+                            "",
+                            "pm.collectionVariables.set('dt_order_amount_success', body.amount);",
+                            "pm.request.body.raw = JSON.stringify(body, null, 2);"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt order success: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "const orderId = json.id || json.orderId;",
+                            "pm.test('dt order success: есть orderId', function () {",
+                            "    pm.expect(orderId).to.be.a('number');",
+                            "});",
+                            "pm.collectionVariables.set('dt_order_id_success', orderId);",
+                            "console.log('dt_order_id_success ->', orderId);"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                },
+                "url": "{{baseUrl}}/orders"
+            },
+            "response": []
+        },
+        {
+            "name": "10) dt - Order fail: PaymentFailed (нет денег)",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "const userId = Number(pm.collectionVariables.get('dt_user_id'));",
+                            "const sku = pm.collectionVariables.get('dt_sku_ok');",
+                            "const slotId = Number(pm.collectionVariables.get('dt_slot_ok'));",
+                            "",
+                            "const hugeAmount = 100000000; // заведомо больше, чем баланс",
+                            "",
+                            "const body = {",
+                            "  userId: userId,",
+                            "  sku: sku,",
+                            "  quantity: 1,",
+                            "  amount: hugeAmount,",
+                            "  deliveryAddress: 'Москва, PaymentFailed',",
+                            "  slotTime: '2025-12-09T10:00:00Z',",
+                            "  slotId: slotId",
+                            "};",
+                            "",
+                            "pm.collectionVariables.set('dt_order_amount_payment_failed', body.amount);",
+                            "pm.request.body.raw = JSON.stringify(body, null, 2);"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt order payment failed: ожидаемый статус', function () {",
+                            "    pm.expect([400, 200]).to.include(pm.response.code);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "if (json && typeof json === 'object') {",
+                            "    if (json.hasOwnProperty('success')) {",
+                            "        pm.test('dt order payment failed: success=false', function () {",
+                            "            pm.expect(json.success).to.be.false;",
+                            "        });",
+                            "    }",
+                            "    if (json.hasOwnProperty('status')) {",
+                            "        pm.test('dt order payment failed: status=PaymentFailed', function () {",
+                            "            pm.expect(String(json.status)).to.eql('PaymentFailed');",
+                            "        });",
+                            "    }",
+                            "    const orderId = json.id || json.orderId;",
+                            "    if (orderId !== undefined) {",
+                            "        pm.collectionVariables.set('dt_order_id_payment_failed', orderId);",
+                            "        console.log('dt_order_id_payment_failed ->', orderId);",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                },
+                "url": "{{baseUrl}}/orders"
+            },
+            "response": []
+        },
+        {
+            "name": "11) dt - Order fail: WarehouseFailed (нет товара на складе)",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "const userId = Number(pm.collectionVariables.get('dt_user_id'));",
+                            "const sku = pm.collectionVariables.get('dt_sku_low');",
+                            "const slotId = Number(pm.collectionVariables.get('dt_slot_ok'));",
+                            "",
+                            "const body = {",
+                            "  userId: userId,",
+                            "  sku: sku,",
+                            "  quantity: 999,",
+                            "  amount: 500,",
+                            "  deliveryAddress: 'Москва, WarehouseFailed',",
+                            "  slotTime: '2025-12-09T10:00:00Z',",
+                            "  slotId: slotId",
+                            "};",
+                            "",
+                            "pm.collectionVariables.set('dt_order_amount_stock_failed', body.amount);",
+                            "pm.request.body.raw = JSON.stringify(body, null, 2);"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt order stock failed: ожидаемый статус', function () {",
+                            "    pm.expect([400, 200]).to.include(pm.response.code);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "if (json && typeof json === 'object') {",
+                            "    if (json.hasOwnProperty('success')) {",
+                            "        pm.test('dt order stock failed: success=false', function () {",
+                            "            pm.expect(json.success).to.be.false;",
+                            "        });",
+                            "    }",
+                            "    if (json.hasOwnProperty('status')) {",
+                            "        pm.test('dt order stock failed: status=WarehouseFailed', function () {",
+                            "            pm.expect(String(json.status)).to.eql('WarehouseFailed');",
+                            "        });",
+                            "    }",
+                            "    const orderId = json.id || json.orderId;",
+                            "    if (orderId !== undefined) {",
+                            "        pm.collectionVariables.set('dt_order_id_stock_failed', orderId);",
+                            "        console.log('dt_order_id_stock_failed ->', orderId);",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                },
+                "url": "{{baseUrl}}/orders"
+            },
+            "response": []
+        },
+        {
+            "name": "12) dt - Order fail: DeliveryFailed (нет слота доставки)",
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "const userId = Number(pm.collectionVariables.get('dt_user_id'));",
+                            "const sku = pm.collectionVariables.get('dt_sku_ok');",
+                            "const slotId = Number(pm.collectionVariables.get('dt_slot_overbooked'));",
+                            "",
+                            "const body = {",
+                            "  userId: userId,",
+                            "  sku: sku,",
+                            "  quantity: 1,",
+                            "  amount: 200,",
+                            "  deliveryAddress: 'Москва, DeliveryFailed',",
+                            "  slotTime: '2025-12-09T12:00:00Z',",
+                            "  slotId: slotId",
+                            "};",
+                            "",
+                            "pm.collectionVariables.set('dt_order_amount_delivery_failed', body.amount);",
+                            "pm.request.body.raw = JSON.stringify(body, null, 2);"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('REQ.BODY', pm.request.body && pm.request.body.raw);",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt order delivery failed: ожидаемый статус', function () {",
+                            "    pm.expect([400, 200]).to.include(pm.response.code);",
+                            "});",
+                            "",
+                            "let json;",
+                            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+                            "",
+                            "if (json && typeof json === 'object') {",
+                            "    if (json.hasOwnProperty('success')) {",
+                            "        pm.test('dt order delivery failed: success=false', function () {",
+                            "            pm.expect(json.success).to.be.false;",
+                            "        });",
+                            "    }",
+                            "    if (json.hasOwnProperty('status')) {",
+                            "        pm.test('dt order delivery failed: status=DeliveryFailed', function () {",
+                            "            pm.expect(String(json.status)).to.eql('DeliveryFailed');",
+                            "        });",
+                            "    }",
+                            "    const orderId = json.id || json.orderId;",
+                            "    if (orderId !== undefined) {",
+                            "        pm.collectionVariables.set('dt_order_id_delivery_failed', orderId);",
+                            "        console.log('dt_order_id_delivery_failed ->', orderId);",
+                            "    }",
+                            "}"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                },
+                "url": "{{baseUrl}}/orders"
+            },
+            "response": []
+        },
+        {
+            "name": "13) dt - Notifications after Saga scenarios",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log('REQUEST', pm.request.method, pm.request.url.toString());",
+                            "console.log('RES.STATUS', pm.response.code);",
+                            "console.log('RES.BODY', pm.response.text());",
+                            "",
+                            "pm.test('dt notifications after all: 200', function () {",
+                            "    pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let list;",
+                            "try { list = pm.response.json(); } catch (e) { list = []; }",
+                            "if (!Array.isArray(list)) list = [];",
+                            "",
+                            "const before = Number(pm.collectionVariables.get('dt_notifications_before') || 0);",
+                            "const after  = list.length;",
+                            "",
+                            "pm.test('dt notifications after all: стало больше, чем до заказов', function () {",
+                            "    pm.expect(after).to.be.above(before);",
+                            "});",
+                            "",
+                            "const failures = list.filter(n => {",
+                            "    const type = String(n.type || '').toLowerCase();",
+                            "    const subj = String(n.subject || '').toLowerCase();",
+                            "    const body = String(n.body || '').toLowerCase();",
+                            "    return type === 'failure' ||",
+                            "           subj.includes('не удалось') ||",
+                            "           body.includes('не удалось') ||",
+                            "           body.includes('недостаточно средств');",
+                            "});",
+                            "",
+                            "pm.test('dt notifications after all: есть хотя бы одно письмо о неудачном заказе', function () {",
+                            "    pm.expect(failures.length).to.be.above(0);",
+                            "});"
+                        ]
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/notifications?userId={{dt_user_id}}"
+            },
+            "response": []
+        }
+    ],
+    "variable": [
+        {
+            "key": "dt_user_email",
+            "value": ""
+        },
+        {
+            "key": "dt_user_password",
+            "value": ""
+        },
+        {
+            "key": "dt_user_id",
+            "value": ""
+        },
+        {
+            "key": "dt_balance_after_deposit",
+            "value": ""
+        },
+        {
+            "key": "dt_notifications_before",
+            "value": ""
+        },
+        {
+            "key": "dt_sku_ok",
+            "value": "DT_OK"
+        },
+        {
+            "key": "dt_sku_low",
+            "value": "DT_LOW"
+        },
+        {
+            "key": "dt_slot_ok",
+            "value": ""
+        },
+        {
+            "key": "dt_slot_overbooked",
+            "value": ""
+        },
+        {
+            "key": "dt_order_amount_success",
+            "value": ""
+        },
+        {
+            "key": "dt_order_amount_payment_failed",
+            "value": ""
+        },
+        {
+            "key": "dt_order_amount_stock_failed",
+            "value": ""
+        },
+        {
+            "key": "dt_order_amount_delivery_failed",
+            "value": ""
+        },
+        {
+            "key": "dt_order_id_success",
+            "value": ""
+        },
+        {
+            "key": "dt_order_id_payment_failed",
+            "value": ""
+        },
+        {
+            "key": "dt_order_id_stock_failed",
+            "value": ""
+        },
+        {
+            "key": "dt_order_id_delivery_failed",
+            "value": ""
+        }
+    ]
+}

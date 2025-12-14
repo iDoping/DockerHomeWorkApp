@@ -1,0 +1,305 @@
+{
+    "info": {
+        "_postman_id": "3c6c0d9a-3f9b-4db9-9f3e-idem0001",
+        "name": "Idempotency Homework - Orders (Billing + Orders only)",
+        "description": "Коллекция для проверки идемпотентности POST /orders с RequestId и доменом arch.homework.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1) idem - Create billing account",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{baseUrl}}/billing/accounts",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"userId\": 1\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('idem create account: 200', function () {",
+                            "  pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "const json = pm.response.json();",
+                            "pm.test('idem create account: userId=1', function () {",
+                            "  pm.expect(json.userId).to.eql(1);",
+                            "});",
+                            "",
+                            "pm.collectionVariables.set('idem_user_id', 1);",
+                            "console.log('idem_user_id ->', 1);"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2) idem - Deposit for user",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{baseUrl}}/billing/accounts/{{idem_user_id}}/deposit",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"amount\": 100000\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('idem deposit: 200', function () {",
+                            "  pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "const json = pm.response.json();",
+                            "",
+                            "pm.test('idem deposit: есть balance', function () {",
+                            "  pm.expect(json.balance).to.be.a('number');",
+                            "});",
+                            "",
+                            "pm.collectionVariables.set('idem_balance_after_deposit', json.balance);",
+                            "console.log('idem_balance_after_deposit ->', json.balance);"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3) idem - Order first call (with RequestId)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "RequestId",
+                        "value": "{{idem_request_id}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/orders",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "function guid() {",
+                            "  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+                            "    const r = Math.random() * 16 | 0;",
+                            "    const v = c === 'x' ? r : (r & 0x3 | 0x8);",
+                            "    return v.toString(16);",
+                            "  });",
+                            "}",
+                            "",
+                            "let key = pm.collectionVariables.get('idem_request_id');",
+                            "if (!key) {",
+                            "  key = guid();",
+                            "  pm.collectionVariables.set('idem_request_id', key);",
+                            "}",
+                            "",
+                            "const userId = Number(pm.collectionVariables.get('idem_user_id')) || 1;",
+                            "",
+                            "const body = {",
+                            "  userId: userId,",
+                            "  amount: 1000",
+                            "};",
+                            "",
+                            "pm.request.body = pm.request.body || {};",
+                            "pm.request.body.mode = 'raw';",
+                            "pm.request.body.raw = JSON.stringify(body, null, 2);",
+                            "",
+                            "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+                            "pm.request.headers.upsert({ key: 'RequestId', value: key });"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('idem first: 200', function () {",
+                            "  pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json = {};",
+                            "try { json = pm.response.json(); } catch (e) {}",
+                            "",
+                            "const orderId = json.id || json.orderId;",
+                            "pm.test('idem first: есть orderId', function () {",
+                            "  pm.expect(orderId).to.be.a('number');",
+                            "});",
+                            "",
+                            "pm.collectionVariables.set('idem_order_id_first', orderId);",
+                            "console.log('idem_order_id_first ->', orderId);"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4) idem - Billing after first order",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/billing/accounts/{{idem_user_id}}"
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('idem billing after first: 200', function () {",
+                            "  pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "const json = pm.response.json();",
+                            "pm.test('idem billing after first: есть balance', function () {",
+                            "  pm.expect(json.balance).to.be.a('number');",
+                            "});",
+                            "",
+                            "const before = Number(pm.collectionVariables.get('idem_balance_after_deposit'));",
+                            "const expected = before - 1000;",
+                            "",
+                            "pm.test('idem billing after first: баланс уменьшился на сумму заказа', function () {",
+                            "  pm.expect(json.balance).to.eql(expected);",
+                            "});",
+                            "",
+                            "pm.collectionVariables.set('idem_balance_after_first_order', json.balance);",
+                            "console.log('idem_balance_after_first_order ->', json.balance);"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5) idem - Order retry same RequestId",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "RequestId",
+                        "value": "{{idem_request_id}}"
+                    }
+                ],
+                "url": "{{baseUrl}}/orders",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "const userId = Number(pm.collectionVariables.get('idem_user_id')) || 1;",
+                            "const key = pm.collectionVariables.get('idem_request_id');",
+                            "",
+                            "const body = {",
+                            "  userId: userId,",
+                            "  amount: 1000",
+                            "};",
+                            "",
+                            "pm.request.body = pm.request.body || {};",
+                            "pm.request.body.mode = 'raw';",
+                            "pm.request.body.raw = JSON.stringify(body, null, 2);",
+                            "",
+                            "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+                            "pm.request.headers.upsert({ key: 'RequestId', value: key });"
+                        ]
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('idem retry: 200', function () {",
+                            "  pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "let json = {};",
+                            "try { json = pm.response.json(); } catch (e) {}",
+                            "",
+                            "const firstId = Number(pm.collectionVariables.get('idem_order_id_first'));",
+                            "const orderId = json.id || json.orderId;",
+                            "",
+                            "pm.test('idem retry: тот же orderId', function () {",
+                            "  pm.expect(orderId).to.eql(firstId);",
+                            "});",
+                            "",
+                            "console.log('idem_order_id_retry ->', orderId);"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6) idem - Billing after retry (no extra charge)",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": "{{baseUrl}}/billing/accounts/{{idem_user_id}}"
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "pm.test('idem billing after retry: 200', function () {",
+                            "  pm.expect(pm.response.code).to.eql(200);",
+                            "});",
+                            "",
+                            "const json = pm.response.json();",
+                            "pm.test('idem billing after retry: есть balance', function () {",
+                            "  pm.expect(json.balance).to.be.a('number');",
+                            "});",
+                            "",
+                            "const afterFirst = Number(pm.collectionVariables.get('idem_balance_after_first_order'));",
+                            "",
+                            "pm.test('idem billing after retry: баланс не изменился', function () {",
+                            "  pm.expect(json.balance).to.eql(afterFirst);",
+                            "});",
+                            "",
+                            "console.log('idem_balance_after_retry ->', json.balance);"
+                        ]
+                    }
+                }
+            ]
+        }
+    ]
+}
