@@ -4,8 +4,10 @@ kind: Service
 metadata:
   name: delivery-service
   labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
     app: delivery-service
     app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: delivery
 spec:
   type: ClusterIP
   ports:

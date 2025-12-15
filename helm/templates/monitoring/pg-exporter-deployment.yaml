@@ -5,29 +5,34 @@ metadata:
   name: {{ include "docker-homework-app.fullname" . }}-pg-exporter
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
-    app.kubernetes.io/component: pg-exporter
+    app: pg-exporter
+    app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: monitoring
 spec:
-  replicas: {{ .Values.monitoring.pgExporter.replicaCount }}
+  replicas: {{ .Values.monitoring.pgExporter.replicaCount | default 1 }}
   selector:
     matchLabels:
-      {{- include "docker-homework-app.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: pg-exporter
+      app: pg-exporter
   template:
     metadata:
       labels:
-        {{- include "docker-homework-app.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: pg-exporter
+        {{- include "docker-homework-app.labels" . | nindent 8 }}
+        app: pg-exporter
+        app.kubernetes.io/part-of: docker-homework-app
+        app.kubernetes.io/component: monitoring
+      annotations:
+        checksum/pg-exporter-secret: {{ include (print $.Template.BasePath "/pg-exporter-secret.yaml") . | sha256sum }}
     spec:
       containers:
         - name: pg-exporter
           image: "{{ .Values.monitoring.pgExporter.image.repository }}:{{ .Values.monitoring.pgExporter.image.tag }}"
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http-metrics
-              containerPort: 9187
-          env:
-            - name: DATA_SOURCE_NAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "docker-homework-app.fullname" . }}-pg-exporter-secret
-                  key: DATA_SOURCE_NAME
+              containerPort: {{ .Values.monitoring.pgExporter.service.targetPort }}
+          envFrom:
+            - secretRef:
+                name: {{ include "docker-homework-app.fullname" . }}-pg-exporter
+          resources:
+            {{- toYaml (.Values.monitoring.pgExporter.resources | default dict) | nindent 12 }}
 {{- end }}

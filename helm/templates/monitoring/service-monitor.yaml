@@ -1,24 +1,20 @@
-{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled (.Values.monitoring.appMetrics.enabled | default false) }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "docker-homework-app.fullname" . }}
+  name: {{ include "docker-homework-app.fullname" . }}-app
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
-    {{- range $k, $v := .Values.monitoring.serviceMonitor.labels }}
-    {{ $k }}: {{ $v | quote }}
-    {{- end }}
+    {{- toYaml .Values.monitoring.serviceMonitor.labels | nindent 4 }}
 spec:
-  jobLabel: job
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "docker-homework-app.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}
   endpoints:
-    - port: http
-      path: /metrics
+    - port: {{ .Values.monitoring.appMetrics.portName | default "http" }}
+      path: {{ .Values.monitoring.appMetrics.path | default "/metrics" }}
       interval: {{ .Values.monitoring.serviceMonitor.interval | default "15s" }}
 {{- end }}

@@ -66,7 +66,7 @@ BEGIN
 END
 $do$;
 
--- создаём базы, если нет
+-- Creade DB IF NOT EXISTS
 SELECT format('CREATE DATABASE %I OWNER %I',
               'users',
               '{{ .Values.pg.app.username }}')
@@ -103,7 +103,7 @@ SELECT format('CREATE DATABASE %I OWNER %I',
 WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{{ .Values.pg.services.delivery.database }}')
 \gexec
 
--- GRANT CONNECT для всех нужных баз
+--
 DO $do$
 DECLARE
   v_app_user       text := '{{ .Values.pg.app.username }}';
@@ -124,7 +124,6 @@ BEGIN
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_users_db, v_app_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_users_db);
 
-  -- сервисные БД
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_orders_db,     v_order_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_billing_db,    v_billing_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_notif_db,      v_notif_user);

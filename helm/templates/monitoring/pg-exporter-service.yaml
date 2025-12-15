@@ -5,13 +5,15 @@ metadata:
   name: {{ include "docker-homework-app.fullname" . }}-pg-exporter
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
-    app.kubernetes.io/component: pg-exporter
+    app: pg-exporter
+    app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: monitoring
 spec:
-  ports:
-    - name: http-metrics
-      port: {{ .Values.monitoring.pgExporter.service.port }}
-      targetPort: {{ .Values.monitoring.pgExporter.service.targetPort }}
+  type: ClusterIP
   selector:
-    {{- include "docker-homework-app.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: pg-exporter
+    app: pg-exporter
+  ports:
+    - name: {{ .Values.monitoring.pgExporter.service.name | default "http-metrics" }}
+      port: {{ .Values.monitoring.pgExporter.service.port }}
+      targetPort: http-metrics
 {{- end }}

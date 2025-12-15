@@ -1,11 +1,16 @@
 {{- if .Values.billingService.enabled }}
+{{- $ext := default (dict "enabled" false "name" "") .Values.externalJwtSecret -}}
+{{- $res := .Values.billingService.resources | default .Values.resources -}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: billing-service
   labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
     app: billing-service
     app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: billing
 spec:
   replicas: {{ .Values.billingService.replicaCount | default 1 }}
   selector:
@@ -14,8 +19,14 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "docker-homework-app.labels" . | nindent 8 }}
         app: billing-service
         app.kubernetes.io/part-of: docker-homework-app
+        app.kubernetes.io/component: billing
+      annotations:
+        {{- if not $ext.enabled }}
+        checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       containers:
         - name: billing-service
@@ -35,4 +46,11 @@ spec:
               value: {{ .Values.pg.services.billing.username | quote }}
             - name: DbSettings__Password
               value: {{ .Values.pg.services.billing.password | quote }}
+
+          envFrom:
+            - secretRef:
+                name: {{ if $ext.enabled }}{{ $ext.name }}{{ else }}{{ printf "%s-jwt-secret" (include "docker-homework-app.fullname" .) }}{{ end }}
+
+          resources:
+            {{- toYaml $res | nindent 12 }}
 {{- end }}

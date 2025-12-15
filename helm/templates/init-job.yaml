@@ -1,58 +1,59 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "docker-homework-app.fullname" . }}-db-init
-  namespace: {{ .Release.Namespace }}
+  name: {{ include "docker-homework-app.fullname" . }}-init-db
   labels:
-    app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
     {{- include "docker-homework-app.labels" . | nindent 4 }}
-  annotations:
-    "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "10"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: db-init
 spec:
-  backoffLimit: 2
+  backoffLimit: 5
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
         {{- include "docker-homework-app.labels" . | nindent 8 }}
+        app.kubernetes.io/part-of: docker-homework-app
+        app.kubernetes.io/component: db-init
+      annotations:
+        checksum/init-sql: {{ include (print $.Template.BasePath "/init-configmap.yaml") . | sha256sum }}
+        checksum/pg-root-secret: {{ include (print $.Template.BasePath "/pg-root-secret.yaml") . | sha256sum }}
     spec:
-      restartPolicy: Never
+      restartPolicy: OnFailure
       containers:
-        - name: init-db
-          image: registry-1.docker.io/bitnami/postgresql:latest
+        - name: psql
+          image: postgres:16
           imagePullPolicy: IfNotPresent
-          command: ["bash","-ec"]
-          args:
-            - |
-              echo "Waiting for PostgreSQL..."
-              until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"; do
-                sleep 2
-              done
-              echo "PostgreSQL is ready, applying init.sql"
-              psql -v ON_ERROR_STOP=1 \
-                   -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" \
-                   -f /sql/init.sql
           env:
             - name: PGHOST
               value: {{ .Values.pg.config.host | quote }}
             - name: PGPORT
               value: {{ .Values.pg.config.port | quote }}
-            - name: PGDATABASE
-              value: "postgres"
             - name: PGUSER
               value: {{ .Values.pg.superuser.username | default "postgres" | quote }}
             - name: PGPASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.pg.superuser.secretName | default (printf "%s-pg-root" (include "docker-homework-app.fullname" .)) }}
-                  key: {{ .Values.pg.superuser.passwordKey | default "password" }}
+                  name: {{ .Values.pg.superuser.secretName | quote }}
+                  key: {{ .Values.pg.superuser.passwordKey | default "password" | quote }}
           volumeMounts:
-            - name: sql-volume
-              mountPath: /sql
+            - name: init-sql
+              mountPath: /init
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "Waiting for Postgres at ${PGHOST}:${PGPORT}..."
+              until pg_isready -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}" ; do
+                sleep 2
+              done
+
+              echo "Applying init SQL..."
+              psql -v ON_ERROR_STOP=1 -f /init/init.sql
+              echo "Done."
       volumes:
-        - name: sql-volume
+        - name: init-sql
           configMap:
             name: {{ include "docker-homework-app.fullname" . }}-init-sql
             items:

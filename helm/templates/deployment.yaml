@@ -1,10 +1,13 @@
 {{- $ext := default (dict "enabled" false "name" "") .Values.externalJwtSecret -}}
+{{- $pgSecretName := (.Values.pg.app.secretName | default (printf "%s-pg-secret" (include "docker-homework-app.fullname" .))) -}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "docker-homework-app.fullname" . }}
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: docker-homework-app
     app.kubernetes.io/component: app
 spec:
   replicas: {{ .Values.replicaCount }}
@@ -15,37 +18,37 @@ spec:
     metadata:
       labels:
         {{- include "docker-homework-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/part-of: docker-homework-app
         app.kubernetes.io/component: app
       annotations:
+        checksum/pg-secret: {{ include (print $.Template.BasePath "/pg-secret.yaml") . | sha256sum }}
         {{- if not $ext.enabled }}
         checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
         {{- end }}
     spec:
-      serviceAccountName: {{ if .Values.serviceAccount.create }}{{ default (include "docker-homework-app.fullname" .) .Values.serviceAccount.name }}{{ else }}default{{ end }}
+      serviceAccountName: {{ default (include "docker-homework-app.fullname" .) .Values.serviceAccount.name }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - containerPort: {{ include "docker-homework-app.containerPort" . }}
-              name: http
+            - name: http
+              containerPort: {{ .Values.containerPort }}
           env:
             - name: Billing__BaseUrl
               value: "http://billing-service"
           envFrom:
-            - configMapRef:
-                name: {{ include "docker-homework-app.fullname" . }}-pg-config
             - secretRef:
-                name: {{ include "docker-homework-app.fullname" . }}-pg-secret
+                name: {{ $pgSecretName }}
             - secretRef:
                 name: {{ if $ext.enabled }}{{ $ext.name }}{{ else }}{{ printf "%s-jwt-secret" (include "docker-homework-app.fullname" .) }}{{ end }}
           livenessProbe:
             httpGet:
-              path: {{ include "docker-homework-app.healthPath" . }}
+              path: {{ .Values.probes.path }}
               port: http
           readinessProbe:
             httpGet:
-              path: {{ include "docker-homework-app.healthPath" . }}
+              path: {{ .Values.probes.path }}
               port: http
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

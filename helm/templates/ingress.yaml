@@ -2,39 +2,33 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "docker-homework-app.fullname" . }}-ingress
+  name: {{ include "docker-homework-app.fullname" . }}
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: docker-homework-app
+  {{- with .Values.ingress.annotations }}
   annotations:
-    {{- range $key, $value := .Values.ingress.annotations }}
-    {{ $key }}: {{ $value | quote }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
     {{- range .Values.ingress.hosts }}
-    - host: {{ .host }}
+    - host: {{ .host | quote }}
       http:
         paths:
           {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: {{ .path | quote }}
+            pathType: {{ .pathType | quote }}
             backend:
               service:
-                # если serviceName не задан у path – идём в основной сервис, как раньше
-                name: {{ default (include "docker-homework-app.serviceName" $) .serviceName }}
+                name: {{ default (include "docker-homework-app.fullname" $) .serviceName | quote }}
                 port:
-                  number: {{ default $.Values.service.port .servicePort }}
+                  number: {{ default 80 .servicePort }}
           {{- end }}
     {{- end }}
-  {{- if .Values.ingress.tls }}
+  {{- with .Values.ingress.tls }}
   tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
+    {{- toYaml . | nindent 4 }}
   {{- end }}
 {{- end }}

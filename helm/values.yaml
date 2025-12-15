@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: idoping/dockerhomeworkapp
-  tag: "1.0.4"
+  tag: 1.0.4
   pullPolicy: Always
 
 containerPort: 8000
@@ -12,15 +12,15 @@ probes:
 
 service:
   type: ClusterIP
-  port: 8000
+  port: 80
 
 resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
   requests:
     cpu: 250m
     memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
 
 serviceAccount:
   create: true
@@ -33,29 +33,26 @@ ingress:
   hosts:
     - host: arch.homework
       paths:
-        - path: /
+        - path: /auth
           pathType: Prefix
-
+          serviceName: docker-homework-app
+          servicePort: 80
         - path: /orders
           pathType: Prefix
           serviceName: order-service
           servicePort: 80
-
         - path: /billing
           pathType: Prefix
           serviceName: billing-service
           servicePort: 80
-
         - path: /notifications
           pathType: Prefix
           serviceName: notification-service
           servicePort: 80
-
         - path: /warehouse
           pathType: Prefix
           serviceName: warehouse-service
           servicePort: 80
-        
         - path: /delivery
           pathType: Prefix
           serviceName: delivery-service
@@ -64,48 +61,36 @@ ingress:
 
 pg:
   config:
-    host: "my-postgres-postgresql.pg.svc.cluster.local"
-    port: "5432"
-    database: "users"
+    host: my-postgres-postgresql.pg.svc.cluster.local
+    port: 5432
+    database: users
 
   app:
-    username: "iDoping"
-    password: "Qzwxec123"
+    username: iDoping
+    password: Qzwxec123
     createSecret: true
-    secretName: "docker-homework-app-pg-secret"
-    passwordKey: "DbSettings__Password"
+    secretName: docker-homework-app-pg-secret
 
   superuser:
-    username: "postgres"
-    password: "Qzwxec123"
+    username: postgres
+    password: Qzwxec123
     createSecret: true
-    secretName: "docker-homework-app-pg-root"
-    passwordKey: "password"
+    secretName: docker-homework-app-pg-root
+    passwordKey: password
 
   services:
-    order:
-      database: "orders"
-      username: "order_service"
-      password: "Qzwxec123"
-    billing:
-      database: "billing"
-      username: "billing_service"
-      password: "Qzwxec123"
-    notifications:
-      database: "notifications"
-      username: "notification_service"
-      password: "Qzwxec123"
-    warehouse:
-      username: "warehouse_service"
-      database: "warehouse"
-      password: "Qzwxec123"
-    delivery:
-      username: "delivery_service"
-      database: "delivery"
-      password: "Qzwxec123"
+    order:         { database: orders,         username: order_service,         password: Qzwxec123 }
+    billing:       { database: billing,        username: billing_service,       password: Qzwxec123 }
+    notifications: { database: notifications,  username: notification_service,  password: Qzwxec123 }
+    warehouse:     { database: warehouse,      username: warehouse_service,     password: Qzwxec123 }
+    delivery:      { database: delivery,       username: delivery_service,      password: Qzwxec123 }
 
 monitoring:
-  enabled: true
+  appMetrics:
+    enabled: true
+    path: /metrics
+    portName: http
+
   pgExporter:
     enabled: true
     replicaCount: 1
@@ -118,7 +103,8 @@ monitoring:
       name: http-metrics
     secret:
       username: exporter
-      password: "Qzwxec123"
+      password: Qzwxec123
+
   serviceMonitor:
     enabled: true
     labels:
@@ -131,50 +117,36 @@ jwt:
   accessTokenMinutes: 60
   secret: ""
 
+externalJwtSecret:
+  enabled: false
+  name: ""
+
 orderService:
   enabled: true
   replicaCount: 1
-  image:
-    repository: idoping/orderservice
-    tag: "1.0.3"
-    pullPolicy: Always
+  image: { repository: idoping/orderservice, tag: 1.0.3, pullPolicy: Always }
   containerPort: 8001
 
 billingService:
   enabled: true
   replicaCount: 1
-  image:
-    repository: idoping/billingservice
-    tag: "1.0.1"
-    pullPolicy: Always
+  image: { repository: idoping/billingservice, tag: 1.0.1, pullPolicy: Always }
   containerPort: 8002
 
 notificationService:
   enabled: true
   replicaCount: 1
-  image:
-    repository: idoping/notificationservice
-    tag: "1.0.1"
-    pullPolicy: Always
+  image: { repository: idoping/notificationservice, tag: 1.0.1, pullPolicy: Always }
   containerPort: 8003
 
 warehouseService:
   enabled: true
   replicaCount: 1
-  image:
-    repository: idoping/warehouseservice
-    tag: "1.0.1"
-    pullPolicy: Always
+  image: { repository: idoping/warehouseservice, tag: 1.0.1, pullPolicy: Always }
   containerPort: 8004
 
 deliveryService:
   enabled: true
   replicaCount: 1
-  image:
-    repository: idoping/deliveryservice
-    tag: "1.0.1"
-    pullPolicy: Always
+  image: { repository: idoping/deliveryservice, tag: 1.0.1, pullPolicy: Always }
   containerPort: 8005
-
-microservicesIngress:
-  enabled: true

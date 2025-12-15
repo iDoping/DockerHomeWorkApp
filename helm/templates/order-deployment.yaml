@@ -1,11 +1,16 @@
 {{- if .Values.orderService.enabled }}
+{{- $ext := default (dict "enabled" false "name" "") .Values.externalJwtSecret -}}
+{{- $res := .Values.orderService.resources | default .Values.resources -}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: order-service
   labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
     app: order-service
     app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: order
 spec:
   replicas: {{ .Values.orderService.replicaCount | default 1 }}
   selector:
@@ -14,8 +19,14 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "docker-homework-app.labels" . | nindent 8 }}
         app: order-service
         app.kubernetes.io/part-of: docker-homework-app
+        app.kubernetes.io/component: order
+      annotations:
+        {{- if not $ext.enabled }}
+        checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       containers:
         - name: order-service
@@ -24,6 +35,7 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.orderService.containerPort }}
+
           env:
             - name: DbSettings__Host
               value: {{ .Values.pg.config.host | quote }}
@@ -43,4 +55,26 @@ spec:
               value: "http://warehouse-service"
             - name: Delivery__BaseUrl
               value: "http://delivery-service"
+
+          envFrom:
+            - secretRef:
+                name: {{ if $ext.enabled }}{{ $ext.name }}{{ else }}{{ printf "%s-jwt-secret" (include "docker-homework-app.fullname" .) }}{{ end }}
+
+          readinessProbe:
+            httpGet:
+              path: /orders/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /orders/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+
+          resources:
+            {{- toYaml $res | nindent 12 }}
+
 {{- end }}

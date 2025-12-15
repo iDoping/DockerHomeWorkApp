@@ -4,8 +4,10 @@ kind: Service
 metadata:
   name: warehouse-service
   labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
     app: warehouse-service
     app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: warehouse
 spec:
   type: ClusterIP
   ports:

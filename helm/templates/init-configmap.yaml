@@ -4,6 +4,8 @@ metadata:
   name: {{ include "docker-homework-app.fullname" . }}-init-sql
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
+    app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: db-init
 data:
-  init.sql: |
-{{ tpl (.Files.Get "init/init.sql") . | indent 4 }}
+  init.sql: |-
+{{ tpl (.Files.Get "init/init.sql") . | nindent 4 }}

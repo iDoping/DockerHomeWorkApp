@@ -1,11 +1,16 @@
 {{- if .Values.warehouseService.enabled }}
+{{- $ext := default (dict "enabled" false "name" "") .Values.externalJwtSecret -}}
+{{- $res := .Values.warehouseService.resources | default .Values.resources -}}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: warehouse-service
   labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
     app: warehouse-service
     app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: warehouse
 spec:
   replicas: {{ .Values.warehouseService.replicaCount | default 1 }}
   selector:
@@ -14,8 +19,14 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "docker-homework-app.labels" . | nindent 8 }}
         app: warehouse-service
         app.kubernetes.io/part-of: docker-homework-app
+        app.kubernetes.io/component: warehouse
+      annotations:
+        {{- if not $ext.enabled }}
+        checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       containers:
         - name: warehouse-service
@@ -24,6 +35,7 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.warehouseService.containerPort }}
+
           env:
             - name: DbSettings__Host
               value: {{ .Values.pg.config.host | quote }}
@@ -35,4 +47,11 @@ spec:
               value: {{ .Values.pg.services.warehouse.username | quote }}
             - name: DbSettings__Password
               value: {{ .Values.pg.services.warehouse.password | quote }}
+
+          envFrom:
+            - secretRef:
+                name: {{ if $ext.enabled }}{{ $ext.name }}{{ else }}{{ printf "%s-jwt-secret" (include "docker-homework-app.fullname" .) }}{{ end }}
+
+          resources:
+            {{- toYaml $res | nindent 12 }}
 {{- end }}

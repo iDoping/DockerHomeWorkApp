@@ -5,21 +5,12 @@ metadata:
   name: {{ include "docker-homework-app.fullname" . }}-pg-exporter
   labels:
     {{- include "docker-homework-app.labels" . | nindent 4 }}
-    {{- range $k, $v := .Values.monitoring.serviceMonitor.labels }}
-    {{ $k }}: {{ $v | quote }}
-    {{- end }}
+    {{- toYaml .Values.monitoring.serviceMonitor.labels | nindent 4 }}
 spec:
-  jobLabel: job
   selector:
     matchLabels:
-      app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/component: pg-exporter
-  namespaceSelector:
-    matchNames:
-      - {{ .Release.Namespace }}
+      app: pg-exporter
   endpoints:
-    - port: http-metrics
-      path: /metrics
+    - port: {{ .Values.monitoring.pgExporter.service.name | default "http-metrics" }}
       interval: {{ .Values.monitoring.serviceMonitor.interval | default "15s" }}
 {{- end }}

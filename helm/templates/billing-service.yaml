@@ -4,8 +4,10 @@ kind: Service
 metadata:
   name: billing-service
   labels:
+    {{- include "docker-homework-app.labels" . | nindent 4 }}
     app: billing-service
     app.kubernetes.io/part-of: docker-homework-app
+    app.kubernetes.io/component: billing
 spec:
   type: ClusterIP
   ports:
