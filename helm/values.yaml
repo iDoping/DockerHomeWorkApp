@@ -64,20 +64,17 @@ pg:
     host: my-postgres-postgresql.pg.svc.cluster.local
     port: 5432
     database: users
-
   app:
     username: iDoping
     password: Qzwxec123
     createSecret: true
     secretName: docker-homework-app-pg-secret
-
   superuser:
     username: postgres
     password: Qzwxec123
     createSecret: true
     secretName: docker-homework-app-pg-root
     passwordKey: password
-
   services:
     order:         { database: orders,         username: order_service,         password: Qzwxec123 }
     billing:       { database: billing,        username: billing_service,       password: Qzwxec123 }
@@ -86,6 +83,11 @@ pg:
     delivery:      { database: delivery,       username: delivery_service,      password: Qzwxec123 }
 
 monitoring:
+  enabled: true
+  namespace: monitoring
+  grafanaDashboards:
+    enabled: true
+
   appMetrics:
     enabled: true
     path: /metrics
@@ -104,12 +106,12 @@ monitoring:
     secret:
       username: exporter
       password: Qzwxec123
-
+      
   serviceMonitor:
     enabled: true
+    interval: 15s
     labels:
       release: monitoring
-    interval: 15s
 
 jwt:
   issuer: DockerHomeWorkApp

@@ -2,6 +2,7 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'exporter') THEN
     CREATE ROLE exporter LOGIN PASSWORD 'Qzwxec123';
+	GRANT pg_monitor TO exporter;
   ELSE
     ALTER ROLE exporter WITH LOGIN PASSWORD 'Qzwxec123';
   END IF;
@@ -121,14 +122,21 @@ DECLARE
   v_delivery_db   text := '{{ .Values.pg.services.delivery.database }}';
 BEGIN
   -- users: app user + exporter
-  EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_users_db, v_app_user);
-  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_users_db);
-
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_users_db, 	   v_app_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_orders_db,     v_order_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_billing_db,    v_billing_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_notif_db,      v_notif_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_warehouse_db,  v_warehouse_user);
   EXECUTE format('GRANT CONNECT ON DATABASE %I TO %I', v_delivery_db,   v_delivery_user);
+  
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', 'postgres');
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_users_db);
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_orders_db);
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_billing_db);
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_notif_db);
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_warehouse_db);
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO exporter', v_delivery_db);
+
 END
 $do$;
 

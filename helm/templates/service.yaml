@@ -14,4 +14,6 @@ spec:
       targetPort: http
       protocol: TCP
   selector:
-    {{- include "docker-homework-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/name: {{ include "docker-homework-app.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: app

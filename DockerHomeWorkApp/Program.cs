@@ -47,7 +47,7 @@ app.UseMiddleware<RequestLoggingMiddleware>();
 
 app.UseRouting();
 app.UseHttpMetrics();
-app.MapMetrics();
+app.MapMetrics().AllowAnonymous();
 
 app.MapHealthChecks("/health");
 

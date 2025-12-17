@@ -21,7 +21,7 @@ spec:
         app.kubernetes.io/part-of: docker-homework-app
         app.kubernetes.io/component: monitoring
       annotations:
-        checksum/pg-exporter-secret: {{ include (print $.Template.BasePath "/pg-exporter-secret.yaml") . | sha256sum }}
+        checksum/pg-exporter-secret: {{ include (print $.Template.BasePath "/monitoring/pg-exporter-secret.yaml") . | sha256sum }}
     spec:
       containers:
         - name: pg-exporter

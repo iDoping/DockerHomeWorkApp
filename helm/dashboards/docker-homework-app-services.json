@@ -1,0 +1,189 @@
+{
+  "uid": "docker-homework-app-services",
+  "title": "DockerHomeWorkApp — Services (template)",
+  "tags": ["docker-homework-app", "services", "template"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "label": "Namespace",
+        "datasource": "$datasource",
+        "refresh": 1,
+        "query": "label_values(up, namespace)",
+        "current": { "text": "default", "value": "default" },
+        "sort": 1
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Service",
+        "datasource": "$datasource",
+        "refresh": 1,
+        "query": "label_values(up{namespace=\"$namespace\", endpoint=\"http\"}, service)",
+        "sort": 1
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "label": "Instance",
+        "datasource": "$datasource",
+        "refresh": 2,
+        "query": "label_values(up{namespace=\"$namespace\", service=\"$service\"}, instance)",
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "UP (selected service)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(up{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\"})"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "HTTP RPS",
+      "datasource": "$datasource",
+      "gridPos": { "x": 6, "y": 0, "w": 18, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_requests_received_total{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\"}[$__rate_interval]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "HTTP 4xx / 5xx RPS",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 4, "w": 6, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(http_requests_received_total{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\", code=~\"4..\"}[$__rate_interval]))"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(http_requests_received_total{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\", code=~\"5..\"}[$__rate_interval]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "p95 latency (seconds)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\"}[$__rate_interval])))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "In-flight requests",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(http_requests_in_progress{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "none", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Process CPU seconds / sec",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(process_cpu_seconds_total{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\"}[$__rate_interval]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "min": 0 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Working set (MB)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(process_working_set_bytes{namespace=\"$namespace\", service=\"$service\", instance=~\"$instance\"}) / 1024 / 1024"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "mbytes", "min": 0 },
+        "overrides": []
+      }
+    }
+  ]
+}

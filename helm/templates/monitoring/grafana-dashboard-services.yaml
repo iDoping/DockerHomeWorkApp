@@ -1,0 +1,14 @@
+{{- $mon := .Values.monitoring | default dict -}}
+{{- if and ($mon.enabled | default false) (($mon.grafanaDashboards).enabled | default true) -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}-grafana-services
+  namespace: {{ $mon.namespace | default "monitoring" }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/part-of: docker-homework-app
+data:
+  docker-homework-app-services.json: |
+{{ .Files.Get "dashboards/docker-homework-app-services.json" | nindent 4 }}
+{{- end }}

@@ -1,0 +1,159 @@
+{
+  "uid": "docker-homework-app-postgres",
+  "title": "DockerHomeWorkApp — Postgres (pg_exporter)",
+  "tags": ["docker-homework-app", "postgres", "pg_exporter", "template"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "label": "Prometheus",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      },
+      {
+        "name": "datname",
+        "type": "query",
+        "label": "Database",
+        "datasource": "$datasource",
+        "refresh": 1,
+        "query": "label_values(pg_database_size_bytes, datname)",
+        "sort": 1,
+        "current": { "text": "users", "value": "users" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "pg_up",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "targets": [
+        { "refId": "A", "expr": "max(pg_up)" }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "DB size (bytes)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 6, "y": 0, "w": 18, "h": 4 },
+      "targets": [
+        { "refId": "A", "expr": "pg_database_size_bytes{datname=\"$datname\"}" }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal"
+      },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Connections (numbackends)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "pg_stat_database_numbackends{datname=\"$datname\"}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "none", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Transactions / sec (commit vs rollback)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"$datname\"}[$__rate_interval])"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"$datname\"}[$__rate_interval])"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Tuples / sec (returned, fetched, inserted, updated, deleted)",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "rate(pg_stat_database_tup_returned{datname=\"$datname\"}[$__rate_interval])" },
+        { "refId": "B", "expr": "rate(pg_stat_database_tup_fetched{datname=\"$datname\"}[$__rate_interval])" },
+        { "refId": "C", "expr": "rate(pg_stat_database_tup_inserted{datname=\"$datname\"}[$__rate_interval])" },
+        { "refId": "D", "expr": "rate(pg_stat_database_tup_updated{datname=\"$datname\"}[$__rate_interval])" },
+        { "refId": "E", "expr": "rate(pg_stat_database_tup_deleted{datname=\"$datname\"}[$__rate_interval])" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Cache hit ratio",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(\n  sum(rate(pg_stat_database_blks_hit{datname=\"$datname\"}[$__rate_interval]))\n) /\n(\n  sum(rate(pg_stat_database_blks_hit{datname=\"$datname\"}[$__rate_interval])) + sum(rate(pg_stat_database_blks_read{datname=\"$datname\"}[$__rate_interval]))\n)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1 },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Deadlocks / sec",
+      "datasource": "$datasource",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "rate(pg_stat_database_deadlocks{datname=\"$datname\"}[$__rate_interval])" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops", "min": 0 }, "overrides": [] }
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Top DB sizes",
+      "datasource": "$datasource",
+      "gridPos": { "x": 0, "y": 28, "w": 24, "h": 8 },
+      "targets": [
+        { "refId": "A", "expr": "topk(10, pg_database_size_bytes)" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "options": { "showHeader": true }
+    }
+  ]
+}

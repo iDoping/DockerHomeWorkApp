@@ -1,0 +1,13 @@
+{{- if .Values.monitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "docker-homework-app.fullname" . }}-grafana-postgres
+  namespace: {{ .Values.monitoring.namespace | default "monitoring" }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/part-of: docker-homework-app
+data:
+  docker-homework-app-postgres.json: |
+{{ .Files.Get "dashboards/docker-homework-app-postgres.json" | nindent 4 }}
+{{- end }}
